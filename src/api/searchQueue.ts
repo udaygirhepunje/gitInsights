@@ -15,8 +15,8 @@ type TaskEntry = {
   reject: (e: unknown) => void;
 };
 
-let foregroundQueue: TaskEntry[] = [];
-let backfillQueue: TaskEntry[] = [];
+const foregroundQueue: TaskEntry[] = [];
+const backfillQueue: TaskEntry[] = [];
 /** Promise chain tail — only one task executes at a time. */
 let chain: Promise<void> = Promise.resolve();
 let lastFinishMs = 0;

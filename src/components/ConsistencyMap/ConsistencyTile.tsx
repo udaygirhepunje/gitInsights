@@ -6,7 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useViewerCommitsByDay } from '../../hooks/useGitHubQueries';
 import { useCellAdornments } from '../../hooks/useCellAdornments';
 import { BENTO_AREAS, BentoTile, TILE_HELP } from '../Bento';
-import { metricMonoStyle } from '../Bento/tiles/Stat';
+import { metricMonoStyle } from '../Bento/tiles/metricMonoStyle';
 import { ConsistencyMap } from './ConsistencyMap';
 import { HeatmapA11yTable } from './HeatmapA11yTable';
 import { commitsToHeatmapRows, rollingYearWindow } from './contributions';

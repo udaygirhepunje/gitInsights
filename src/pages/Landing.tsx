@@ -31,7 +31,7 @@ import { Link, Navigate } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { MetricHelpTip, TILE_HELP } from '../components/Bento';
-import { metricMonoStyle } from '../components/Bento/tiles/Stat';
+import { metricMonoStyle } from '../components/Bento/tiles/metricMonoStyle';
 import { useAuth } from '../hooks/useAuth';
 
 const SCOPES: ReadonlyArray<{ name: string; rationale: string }> = [

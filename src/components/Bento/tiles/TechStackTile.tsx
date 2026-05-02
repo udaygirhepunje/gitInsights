@@ -12,7 +12,8 @@ import { useTimeframe } from '../../../hooks/useTimeframe';
 import type { Timeframe } from '../../../userData/schema';
 import { useOffDayContext } from '../../../userData/useOffDayContext';
 import { BENTO_AREAS, BentoTile, TILE_HELP } from '..';
-import { metricMonoStyle, VerdictLine } from './Stat';
+import { metricMonoStyle } from './metricMonoStyle';
+import { VerdictLine } from './Stat';
 
 const StackBar = styled(Group)`
   width: 100%;
