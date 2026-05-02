@@ -1,6 +1,8 @@
 import { Anchor, Button, Group, Stack, Text } from '@mantine/core';
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { deleteAllChunks } from '../../api/commitCache';
 import { clearAllQueryCache } from '../../api/queryClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useSyncStore } from '../../sync';
@@ -10,15 +12,53 @@ import { SettingsSection } from './SettingsSection';
 const REVOKE_URL = 'https://github.com/settings/applications';
 
 export function DataControlsSection(): JSX.Element {
-  const { logout } = useAuth();
+  const { logout, viewer } = useAuth();
+  const queryClient = useQueryClient();
   const syncEnabled = useSyncStore((s) => s.enabled);
   const [status, setStatus] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
   const [pendingClearCache, setPendingClearCache] = useState(false);
+  const [pendingRefreshCommits, setPendingRefreshCommits] = useState(false);
   const [pendingLogout, setPendingLogout] = useState(false);
 
   const handleClearCache = async () => {
     await clearAllQueryCache();
-    setStatus({ tone: 'success', message: 'local query cache cleared. next fetch will be fresh.' });
+    if (viewer?.login) await deleteAllChunks(viewer.login);
+    void queryClient.invalidateQueries({
+      predicate: (q) => {
+        const key = q.queryKey;
+        return (
+          Array.isArray(key) && key[0] === 'viewer' && key[1] === 'commitsByDay' && key[2] === viewer?.login
+        );
+      },
+    });
+    setStatus({
+      tone: 'success',
+      message:
+        'local query cache and month-chunk commit store cleared. next dashboard load hits github fresh.',
+    });
+  };
+
+  const handleRefreshCommits = async () => {
+    const login = viewer?.login;
+    if (!login) return;
+    try {
+      await deleteAllChunks(login);
+      await queryClient.invalidateQueries({
+        predicate: (q) => {
+          const key = q.queryKey;
+          return (
+            Array.isArray(key) && key[0] === 'viewer' && key[1] === 'commitsByDay' && key[2] === login
+          );
+        },
+      });
+      setStatus({
+        tone: 'success',
+        message:
+          'refreshing commit data from github. give it a few minutes — the heatmap will fill back in.',
+      });
+    } catch {
+      setStatus({ tone: 'error', message: "couldn't clear commit chunks. try again." });
+    }
   };
 
   const handleLogout = async () => {
@@ -36,6 +76,9 @@ export function DataControlsSection(): JSX.Element {
         <Group gap="sm" wrap="wrap">
           <Button variant="outline" color="primerRed" onClick={() => setPendingClearCache(true)}>
             clear local cache
+          </Button>
+          <Button variant="outline" color="primerYellow" onClick={() => setPendingRefreshCommits(true)}>
+            refresh all commit data
           </Button>
           <Button variant="filled" color="primerRed" onClick={() => setPendingLogout(true)}>
             log out
@@ -60,6 +103,18 @@ export function DataControlsSection(): JSX.Element {
         onConfirm={() => {
           setPendingClearCache(false);
           void handleClearCache();
+        }}
+      />
+
+      <ConfirmDialog
+        opened={pendingRefreshCommits}
+        title="refresh all commit data?"
+        body="re-downloads your commit history from github. takes a few minutes. only do this if something looks wrong."
+        confirmLabel="refresh commits"
+        onCancel={() => setPendingRefreshCommits(false)}
+        onConfirm={() => {
+          setPendingRefreshCommits(false);
+          void handleRefreshCommits();
         }}
       />
 
