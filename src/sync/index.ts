@@ -1,3 +1,4 @@
+export { BackfillBoot } from './BackfillBoot';
 export { SyncBoot, useSyncStore } from './useSync';
 export type { SyncStatus } from './useSync';
 export type { SyncEvent } from './syncLog';

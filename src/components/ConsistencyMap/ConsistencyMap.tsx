@@ -108,6 +108,20 @@ const Cell = styled(Box)`
   position: relative;
   min-width: 0;
 
+  @keyframes gi-pending-pulse {
+    0%,
+    100% {
+      opacity: 0.55;
+    }
+    50% {
+      opacity: 0.85;
+    }
+  }
+
+  &[data-gi-pending='true'] {
+    animation: gi-pending-pulse 1.2s ease-in-out infinite;
+  }
+
   &:hover {
     outline: ${HIGHLIGHT_STROKE_PX}px solid var(--gi-focus-outline);
   }
@@ -269,6 +283,7 @@ type TooltipFacts = {
   label: string | undefined;
   offDay: TooltipOffDay | undefined;
   violation: boolean;
+  pending?: boolean;
 };
 
 function CellTooltipContent({ facts }: { facts: TooltipFacts }): JSX.Element {
@@ -280,6 +295,19 @@ function CellTooltipContent({ facts }: { facts: TooltipFacts }): JSX.Element {
         </Text>
         <Text size="xs" style={{ color: 'inherit', opacity: 0.72 }}>
           outside the 365-day window.
+        </Text>
+      </Stack>
+    );
+  }
+
+  if (facts.pending) {
+    return (
+      <Stack gap={6}>
+        <Text size="xs" fw={600} style={{ color: 'inherit' }}>
+          {formatDateLabel(facts.date)}
+        </Text>
+        <Text size="xs" style={{ color: 'inherit', opacity: 0.72 }}>
+          loading older commit data for this month…
         </Text>
       </Stack>
     );
@@ -390,8 +418,10 @@ export function ConsistencyMap({
         const date = addDays(gridStart, col * DAYS_PER_WEEK + row);
         const dateKey = toIsoDateKey(date);
         const inRange = date >= fromTime && date <= toTime;
-        const count = inRange ? (byDate.get(dateKey)?.count ?? 0) : 0;
-        const level = inRange ? bucketOf(count) : 0;
+        const heatmapRow = byDate.get(dateKey);
+        const count = inRange ? (heatmapRow?.count ?? 0) : 0;
+        const pending = inRange ? (heatmapRow?.pending ?? false) : false;
+        const level = inRange && !pending ? bucketOf(count) : 0;
         const adorn = inRange ? cellAdornments?.(dateKey) : undefined;
         const offDay: TooltipOffDay | undefined =
           adorn?.color != null
@@ -419,6 +449,7 @@ export function ConsistencyMap({
             label: adorn?.label,
             offDay,
             violation: adorn?.overlayDot ?? false,
+            pending,
           },
           level,
           color: adorn?.color,
@@ -482,6 +513,7 @@ export function ConsistencyMap({
             >
               <Cell
                 data-lvl={cell.level > 0 ? String(cell.level) : undefined}
+                data-gi-pending={cell.facts.pending ? 'true' : undefined}
                 data-out-of-range={cell.facts.inRange ? undefined : 'true'}
                 data-gi-holiday={cell.publicHoliday ? 'true' : undefined}
                 data-gi-violation={cell.violation ? 'true' : undefined}

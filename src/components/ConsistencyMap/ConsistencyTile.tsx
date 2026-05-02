@@ -33,7 +33,7 @@ export function ConsistencyTile(): JSX.Element {
   });
 
   const rows = useMemo(
-    () => (data ? commitsToHeatmapRows(data.byDate, window) : []),
+    () => (data ? commitsToHeatmapRows(data.byDate, window, data.coverage) : []),
     [data, window],
   );
   const byDateMap = useMemo(() => {
@@ -68,6 +68,7 @@ export function ConsistencyTile(): JSX.Element {
           <Group justify="space-between">
             <Text size="xs" c="dimmed" style={metricMonoStyle}>
               {totalCommits.toLocaleString()} commits, last 365 days.
+              {data?.coverage?.backfilling ? ' loading older months…' : ''}
             </Text>
             <HeatmapLegend />
           </Group>

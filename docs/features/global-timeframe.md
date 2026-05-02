@@ -9,7 +9,7 @@ A dashboard-level filter that scopes the data window for every tile except the C
 
 - `Timeframe = { kind: 'preset', preset: PresetId } | { kind: 'month', year: number, month: 1..12 } | { kind: 'quarter', year: number, quarter: 1..4 } | { kind: 'custom', from: 'YYYY-MM-DD', to: 'YYYY-MM-DD' }` (all dates in the user's local TZ).
 - `PresetId = 'last-week' | 'last-30-days' | 'last-3-months' | 'last-6-months' | 'last-year'`.
-- Default: `{ kind: 'preset', preset: 'last-year' }` (rolling 365 days ending today).
+- Default: `{ kind: 'preset', preset: 'last-30-days' }` (rolling 30 days ending today). Changed from `last-year` in Phase 11 (see `spec.md §3.D.1`) — wider windows are progressively backfilled to avoid secondary rate limits on first load.
 - **Maximum window: 365 days.** This is a hard cap across every `kind` — no preset, month, quarter, or custom range may resolve to a window longer than 365 days. The cap keeps GitHub API spend bounded, keeps worker compute predictable, and aligns every tile with the trailing-year horizon the Consistency Map already uses.
 - Stored under `gi.user-data.preferences.timeframe`; syncs via the gist sync feature (see [`gist-sync.md`](./gist-sync.md)). Persisted across reloads; resets to default only via an explicit "reset" action in the picker.
 - Resolution: a single `resolveTimeframe(tf, now)` helper returns `{ from: Date, to: Date, label: string }` — every tile reads from this, no tile re-derives ranges from the raw `Timeframe`.

@@ -32,6 +32,12 @@ const MIGRATIONS: Record<number, Migration> = {
       },
     };
   },
+  // v3 → v4 (Phase 11): schema bump; default timeframe for new installs is
+  // last-30-days via `schema.ts`. Existing stored `preferences.timeframe` is preserved.
+  3: (input) => ({
+    ...(input as object),
+    schemaVersion: 4,
+  }),
 };
 
 export type MigrationResult = {

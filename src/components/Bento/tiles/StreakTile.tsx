@@ -168,6 +168,11 @@ export function StreakTile(): JSX.Element {
 
         <StatRow label="longest" value={longestDaysValue} />
         <StatRow label="last broken" value={lastBrokenValue} />
+        {data?.coverage?.backfilling ? (
+          <Text size="xs" c="dimmed" ff="monospace">
+            loading older commits… streak updates as months arrive.
+          </Text>
+        ) : null}
       </Stack>
     </BentoTile>
   );

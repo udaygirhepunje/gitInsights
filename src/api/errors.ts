@@ -6,7 +6,7 @@ import { GraphqlResponseError } from '@octokit/graphql';
 // global rate-limit banner subscribes via the event emitter in `events.ts`.
 
 export type GitHubErrorKind =
-  | { kind: 'rate-limit'; resetAt: Date | null; remaining: number | null }
+  | { kind: 'rate-limit'; resetAt: Date | null; remaining: number | null; retryAfterAt: Date | null }
   | { kind: 'sso-required'; ssoUrl: string | null }
   | { kind: 'unauthorized' }
   | { kind: 'not-found' }
@@ -37,6 +37,19 @@ function readHeader(headers: HeaderBag, name: string): string | undefined {
   return undefined;
 }
 
+function parseRetryAfterSeconds(headers: HeaderBag): number | null {
+  const raw = readHeader(headers, 'retry-after');
+  if (raw === undefined) return null;
+  const asInt = Number(raw);
+  if (Number.isFinite(asInt) && asInt >= 0) return Math.min(asInt, 86_400);
+  const asDate = Date.parse(raw);
+  if (Number.isFinite(asDate)) {
+    const sec = Math.ceil((asDate - Date.now()) / 1000);
+    return sec > 0 ? Math.min(sec, 86_400) : null;
+  }
+  return null;
+}
+
 export function detectRateLimit(
   status: number,
   headers: HeaderBag,
@@ -48,7 +61,12 @@ export function detectRateLimit(
   const remaining = remainingRaw != null ? Number(remainingRaw) : null;
   const resetRaw = readHeader(headers, 'x-ratelimit-reset');
   const resetSeconds = resetRaw != null ? Number(resetRaw) : NaN;
-  const resetAt = Number.isFinite(resetSeconds) ? new Date(resetSeconds * 1000) : null;
+  const resetFromHeader = Number.isFinite(resetSeconds) ? new Date(resetSeconds * 1000) : null;
+
+  const retrySec = parseRetryAfterSeconds(headers);
+  const retryAfterAt = retrySec != null && retrySec > 0 ? new Date(Date.now() + retrySec * 1000) : null;
+
+  const resetAt = resetFromHeader;
 
   const message = (bodyMessage ?? '').toLowerCase();
   const looksLikeRateLimit =
@@ -64,6 +82,7 @@ export function detectRateLimit(
     kind: 'rate-limit',
     resetAt,
     remaining: Number.isFinite(remaining as number) ? (remaining as number) : null,
+    retryAfterAt,
   };
 }
 
@@ -112,7 +131,7 @@ type GraphqlErrorEntry = { type?: string; message?: string };
 function classifyGraphqlErrors(errors: GraphqlErrorEntry[]): GitHubErrorKind | null {
   for (const err of errors) {
     if (err.type === 'RATE_LIMITED') {
-      return { kind: 'rate-limit', resetAt: null, remaining: 0 };
+      return { kind: 'rate-limit', resetAt: null, remaining: 0, retryAfterAt: null };
     }
     if (err.type === 'FORBIDDEN' || err.type === 'UNAUTHENTICATED') {
       return { kind: 'unauthorized' };

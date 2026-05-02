@@ -5,13 +5,27 @@ import { getLastRateLimit, subscribeRateLimit } from '../api/events';
 
 type RateLimitInfo = Extract<GitHubErrorKind, { kind: 'rate-limit' }>;
 
-const NULL_INFO: RateLimitInfo = { kind: 'rate-limit', resetAt: null, remaining: null };
+function displayUntilMs(info: RateLimitInfo): number | null {
+  const times = [info.resetAt, info.retryAfterAt]
+    .filter((d): d is Date => d != null && !Number.isNaN(d.getTime()))
+    .map((d) => d.getTime());
+  if (times.length === 0) return null;
+  return Math.max(...times);
+}
 
 function isActive(info: RateLimitInfo | null): boolean {
   if (!info) return false;
-  if (info.resetAt && info.resetAt.getTime() <= Date.now()) return false;
-  if (info.resetAt === null && info.remaining === null) return false;
-  return true;
+  if (info.remaining === null && info.resetAt === null && info.retryAfterAt === null) {
+    return false;
+  }
+  const until = displayUntilMs(info);
+  if (until != null && until > Date.now()) return true;
+  if (until != null && until <= Date.now()) return false;
+  return info.remaining === 0;
+}
+
+function isClearedEvent(info: RateLimitInfo): boolean {
+  return info.resetAt === null && info.remaining === null && info.retryAfterAt === null;
 }
 
 export function useRateLimit(): RateLimitInfo | null {
@@ -19,13 +33,14 @@ export function useRateLimit(): RateLimitInfo | null {
 
   useEffect(() => {
     return subscribeRateLimit((next) => {
-      setInfo(next === NULL_INFO ? null : next);
+      setInfo(isClearedEvent(next) ? null : next);
     });
   }, []);
 
   useEffect(() => {
-    if (!info?.resetAt) return;
-    const ms = info.resetAt.getTime() - Date.now();
+    const until = info ? displayUntilMs(info) : null;
+    if (until == null) return;
+    const ms = until - Date.now();
     if (ms <= 0) {
       setInfo(null);
       return;

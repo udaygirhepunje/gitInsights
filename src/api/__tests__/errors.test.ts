@@ -45,8 +45,19 @@ describe('detectRateLimit', () => {
     expect(result?.resetAt).toBeNull();
   });
 
-  it('returns null for 403 SAML SSO (handled by detectSsoRequired)', () => {
-    expect(detectRateLimit(403, {}, 'SAML enforcement required')).toBeNull();
+  it('parses Retry-After as seconds on 403 rate-limit', () => {
+    const result = detectRateLimit(
+      403,
+      { 'retry-after': '120' },
+      'You have exceeded a secondary rate limit',
+    );
+    expect(result?.kind).toBe('rate-limit');
+    expect(result?.retryAfterAt).not.toBeNull();
+    if (result?.retryAfterAt) {
+      const delta = result.retryAfterAt.getTime() - Date.now();
+      expect(delta).toBeGreaterThan(119_000);
+      expect(delta).toBeLessThan(121_000);
+    }
   });
 });
 
@@ -107,7 +118,9 @@ describe('isRetryable', () => {
   });
 
   it('does not retry rate limit, sso, unauthorized, not-found', () => {
-    expect(isRetryable({ kind: 'rate-limit', resetAt: null, remaining: 0 })).toBe(false);
+    expect(isRetryable({ kind: 'rate-limit', resetAt: null, remaining: 0, retryAfterAt: null })).toBe(
+      false,
+    );
     expect(isRetryable({ kind: 'sso-required', ssoUrl: null })).toBe(false);
     expect(isRetryable({ kind: 'unauthorized' })).toBe(false);
     expect(isRetryable({ kind: 'not-found' })).toBe(false);

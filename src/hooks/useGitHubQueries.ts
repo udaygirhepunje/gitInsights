@@ -1,16 +1,17 @@
 import {
   useInfiniteQuery,
   useQuery,
+  useQueryClient,
   type UseInfiniteQueryResult,
   type UseQueryResult,
 } from '@tanstack/react-query';
 
+import { ensureCommitsByDayRange } from '../api/commitsByDayRange';
 import {
   COMMIT_HISTORY_DEFAULT_CAP,
   COMMIT_PAGE_SIZE,
   makeRepoCommitHistoryFetcher,
   makeRepoLanguagesFetcher,
-  makeViewerCommitsByDayFetcher,
   makeViewerContributionsFetcher,
   makeViewerOrgsFetcher,
   makeViewerProfileFetcher,
@@ -65,23 +66,26 @@ export function useViewerContributions(
   });
 }
 
-// Pure non-merge commits per day — see `makeViewerCommitsByDayFetcher` for
-// why this is separate from `useViewerContributions` (same calendar window,
-// different definition of "activity").
+// Pure non-merge commits per day — month-chunk cache + search queue (spec §3.D.1).
 export function useViewerCommitsByDay(args: {
   login: string | null | undefined;
   range: ContributionsRange;
 }): UseQueryResult<CommitsByDay> {
   const clients = useGitHub();
+  const queryClient = useQueryClient();
   const key = rangeKey(args.range);
   const login = args.login ?? '';
+  const qk = queryKeys.viewerCommitsByDay(login, key.from, key.to);
   return useQuery({
-    queryKey: queryKeys.viewerCommitsByDay(login, key.from, key.to),
-    queryFn: () =>
-      makeViewerCommitsByDayFetcher(requireClients(clients))({
-        login,
-        from: args.range.from,
-        to: args.range.to,
+    queryKey: qk,
+    queryFn: ({ signal }) =>
+      ensureCommitsByDayRange(requireClients(clients), login, args.range.from, args.range.to, {
+        priority: 'foreground',
+        staleMs: STALE_TIMES.commitsByDay,
+        signal,
+        onPartial: (partial) => {
+          queryClient.setQueryData(qk, partial);
+        },
       }),
     enabled: clients != null && login.length > 0,
     staleTime: STALE_TIMES.commitsByDay,

@@ -21,7 +21,7 @@ export type Timeframe =
   | { kind: 'quarter'; year: number; quarter: 1 | 2 | 3 | 4 }
   | { kind: 'custom'; from: string; to: string };
 
-export const DEFAULT_TIMEFRAME: Timeframe = { kind: 'preset', preset: 'last-year' };
+export const DEFAULT_TIMEFRAME: Timeframe = { kind: 'preset', preset: 'last-30-days' };
 
 export type Preferences = {
   timeframe?: Timeframe;
@@ -57,7 +57,7 @@ export type BentoConfig = {
 };
 
 export type UserData = {
-  schemaVersion: 3;
+  schemaVersion: 4;
   // ISO 8601 timestamp of the last write. Drives last-write-wins conflict
   // resolution for cross-device sync (spec §3.G). Always stamped by the
   // store; never trust callers to set it.
@@ -75,7 +75,7 @@ export type UserData = {
   preferences: Preferences;
 };
 
-export const CURRENT_SCHEMA_VERSION = 3 as const;
+export const CURRENT_SCHEMA_VERSION = 4 as const;
 
 export const EPOCH_TIMESTAMP = '1970-01-01T00:00:00.000Z';
 

@@ -120,6 +120,41 @@ Reference implementation: `docs/oauth-token-proxy-example.js` (illustrative, not
 - On `403` rate-limit response: surface a non-blocking banner with the reset time and serve cached data.
 - Pagination: cursor-based via GraphQL `pageInfo`; cap at a configurable max (e.g., 5,000 commits per repo per fetch) with a "load more" affordance.
 
+#### D.1 Incremental Commit Cache (search/commits)
+
+The `GET /search/commits` endpoint sits in GitHub's `search` rate bucket (30 requests/minute, aggressive secondary limits). A cold dashboard load for a 12-month window can fan out to 10+ paginated pages and trigger secondary rate-limit `403`s — even when the hourly quota is nowhere near exhausted.
+
+**Core insight**: commits older than ~30 days are historical; they don't change. The app should fetch them once, store them locally forever, and never re-request them.
+
+**Month-chunk architecture**:
+
+- The 365-day window is split into calendar-month chunks (`2026-01`, `2026-02`, …). Each chunk stores its own `byDate` map and `timestamps` array in IndexedDB under `gi.commits.<login>.<month>`.
+- A chunk is **sealed** once its month is more than 30 days in the past. Sealed chunks are never re-fetched unless the user explicitly requests a full refresh.
+- The **current month** chunk (and optionally the previous month) is the only one refetched on each visit, using the same `search/commits` query scoped to that month's date range — typically 1 page, 1 API call.
+- When tiles request a date range, the cache layer assembles the response by merging the relevant month-chunks. If any chunk is missing, only that chunk is fetched — not the entire range.
+
+**Progressive backfill on first load**:
+
+- Default timeframe on first-ever login: `last-30-days`. The app fetches only the current month (1–2 search pages), renders the dashboard immediately.
+- A background backfill job walks backwards month-by-month towards 12 months ago, with a **15-second delay** between each chunk fetch. This spreads ~12 requests over ~3 minutes instead of bursting them all at once.
+- Backfill progress is visible in the UI (e.g., heatmap cells filling in from right to left, a subtle "loading older data…" indicator on affected tiles).
+- If the user closes the tab mid-backfill, completed chunks persist; the next visit resumes from the first missing chunk.
+
+**Returning-user fast path**:
+
+- On subsequent visits, sealed month-chunks load from IndexedDB (instant, zero API calls). Only the gap between the last cached date and today is fetched — typically 0–few days, 1 API call.
+- The `staleTime` for the current-month chunk remains 1 hour (spec §3.D). Sealed chunks have effectively infinite `staleTime`.
+
+**Request throttle** (secondary rate-limit defense):
+
+- A global request queue for `search/commits` allows at most **1 in-flight search request** at a time with a minimum 2-second gap between consecutive requests.
+- On any `403`/`429` response: read `Retry-After` if present; otherwise pause for 60 seconds. Persist the cooldown timestamp in `localStorage` (`gi.search.cooldown`) so all tabs and page reloads respect it.
+- The queue applies to both foreground fetches and background backfill.
+
+**Manual refresh**:
+
+- `/settings → Data controls` gains a **"Refresh all commit data"** action that clears all month-chunks and re-runs the progressive backfill. Copy: "re-downloads your commit history from github. takes a few minutes. only do this if something looks wrong."
+
 ### E. Heavy Compute (Web Workers)
 
 Commit Momentum and WLB rollups can iterate over tens of thousands of commits. Run them off the main thread:
@@ -239,7 +274,7 @@ These three concepts are the substrate for every time-based metric. Every metric
 
 ### Window control
 
-- **Global Timeframe Filter** — a single dashboard-level control that scopes every tile *except* the Consistency Map. Presets (`last-week`, `last-30-days`, `last-3-months`, `last-6-months`, `last-year`), specific month, specific quarter, or a custom range; **hard 365-day cap**; default `last-year`. Stored in `gi.user-data.preferences.timeframe` and synced via §3.G. Every dependent tile reads from one `resolveTimeframe(tf, now)` helper. Full spec: [`features/global-timeframe.md`](./features/global-timeframe.md).
+- **Global Timeframe Filter** — a single dashboard-level control that scopes every tile *except* the Consistency Map. Presets (`last-week`, `last-30-days`, `last-3-months`, `last-6-months`, `last-year`), specific month, specific quarter, or a custom range; **hard 365-day cap**; default `last-30-days` (changed from `last-year` in Phase 11 — see §3.D.1; wider windows backfill progressively). Stored in `gi.user-data.preferences.timeframe` and synced via §3.G. Every dependent tile reads from one `resolveTimeframe(tf, now)` helper. Full spec: [`features/global-timeframe.md`](./features/global-timeframe.md).
 
 ### Metrics
 

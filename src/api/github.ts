@@ -1,6 +1,7 @@
 import { graphql as octokitGraphql } from '@octokit/graphql';
 import { Octokit } from '@octokit/rest';
 
+import { ensureCommitsByDayRange, type CommitsByDay } from './commitsByDayRange';
 import {
   classifyError,
   detectRateLimit,
@@ -204,15 +205,12 @@ export function makeRepoCommitFetcher(clients: GitHubClients) {
   };
 }
 
-// "Pure" commits per day for the contribution heatmap. Uses REST
-// search/commits with the `merge:false` qualifier so merge commits are
-// excluded server-side. The contributionCalendar endpoint we query elsewhere
-// counts every contribution type (commits + PRs + issues + reviews +
-// comments) — fine for an "activity" view, wrong for a "code I wrote" view.
-//
-// Pagination strategy: search/commits caps at 1000 results per query. We try
-// the whole window in one go and bisect the date range only when we hit the
-// cap, so 99% of users incur a single network round-trip per page (≤10 pages).
+// Re-export for hooks / workers that import from `api/github`.
+export type { CommitsByDay } from './commitsByDayRange';
+
+// "Pure" commits per day — month-chunk cache + serialized search (spec §3.D.1).
+// Uses REST search/commits with `merge:false`. Chunking + queue live in
+// `commitsByDayRange.ts` / `githubCommitsSearch.ts`.
 
 export type CommitsByDayArgs = {
   login: string;
@@ -220,131 +218,7 @@ export type CommitsByDayArgs = {
   to: Date | string;
 };
 
-export type CommitsByDay = {
-  byDate: Record<string, number>;
-  totalCommits: number;
-  fromIso: string;
-  toIso: string;
-  truncated: boolean;
-  // Raw per-commit author timestamps (ISO). Drives the WLB hour histogram +
-  // late-night / non-workday ratios in Phase 5. Sized at most ~5K entries
-  // (one year × the search-commits page cap), so persisting in IndexedDB is
-  // cheap.
-  timestamps: string[];
-};
-
-const COMMITS_PAGE_SIZE = 100;
-const COMMITS_HARD_CAP = 1000;
-const COMMITS_MAX_PAGES = COMMITS_HARD_CAP / COMMITS_PAGE_SIZE;
-
-function isoDateOnly(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-function midpointDate(a: Date, b: Date): Date {
-  return new Date(a.getTime() + Math.floor((b.getTime() - a.getTime()) / 2));
-}
-
-function addOneDay(d: Date): Date {
-  const next = new Date(d);
-  next.setDate(next.getDate() + 1);
-  return next;
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
 export function makeViewerCommitsByDayFetcher(clients: GitHubClients) {
-  return async ({ login, from, to }: CommitsByDayArgs): Promise<CommitsByDay> => {
-    const fromDate = from instanceof Date ? new Date(from) : new Date(from);
-    const toDate = to instanceof Date ? new Date(to) : new Date(to);
-    fromDate.setHours(0, 0, 0, 0);
-    toDate.setHours(0, 0, 0, 0);
-
-    const byDate: Record<string, number> = {};
-    const timestamps: string[] = [];
-    let totalCommits = 0;
-    let truncated = false;
-
-    const ingest = (items: Array<{ commit: { author: { date?: string | null } | null } }>) => {
-      for (const item of items) {
-        const date = item.commit.author?.date;
-        if (!date) continue;
-        const dateKey = date.slice(0, 10);
-        byDate[dateKey] = (byDate[dateKey] ?? 0) + 1;
-        timestamps.push(date);
-        totalCommits += 1;
-      }
-    };
-
-    const fetchRange = async (since: Date, until: Date): Promise<void> => {
-      const sinceIso = isoDateOnly(since);
-      const untilIso = isoDateOnly(until);
-      const q = `author:${login} author-date:${sinceIso}..${untilIso} merge:false`;
-
-      let firstPage;
-      try {
-        firstPage = await clients.rest.search.commits({
-          q,
-          per_page: COMMITS_PAGE_SIZE,
-          page: 1,
-          sort: 'author-date',
-          order: 'desc',
-        });
-      } catch (err) {
-        throw toGitHubApiError(err);
-      }
-
-      const totalCount = firstPage.data.total_count ?? 0;
-
-      if (totalCount > COMMITS_HARD_CAP && !isSameDay(since, until)) {
-        const mid = midpointDate(since, until);
-        await fetchRange(since, mid);
-        await fetchRange(addOneDay(mid), until);
-        return;
-      }
-
-      if (totalCount > COMMITS_HARD_CAP) truncated = true;
-
-      ingest(firstPage.data.items);
-      const totalPages = Math.min(
-        COMMITS_MAX_PAGES,
-        Math.ceil(Math.min(totalCount, COMMITS_HARD_CAP) / COMMITS_PAGE_SIZE),
-      );
-
-      for (let page = 2; page <= totalPages; page += 1) {
-        try {
-          const next = await clients.rest.search.commits({
-            q,
-            per_page: COMMITS_PAGE_SIZE,
-            page,
-            sort: 'author-date',
-            order: 'desc',
-          });
-          ingest(next.data.items);
-        } catch (err) {
-          throw toGitHubApiError(err);
-        }
-      }
-    };
-
-    await fetchRange(fromDate, toDate);
-
-    return {
-      byDate,
-      totalCommits,
-      fromIso: isoDateOnly(fromDate),
-      toIso: isoDateOnly(toDate),
-      truncated,
-      timestamps,
-    };
-  };
+  return async ({ login, from, to }: CommitsByDayArgs): Promise<CommitsByDay> =>
+    ensureCommitsByDayRange(clients, login, from, to, { priority: 'foreground' });
 }

@@ -25,6 +25,7 @@ docs/tasks/
 | # | File | Goal |
 |---|---|---|
 | 9 | [`backlog/phase-09-global-timeframe-filter.md`](./backlog/phase-09-global-timeframe-filter.md) | Dashboard-wide timeframe picker (presets / month / quarter / custom, 365d cap) + Weekly Coding Days bucketed histogram. Implements [`../features/global-timeframe.md`](../features/global-timeframe.md). |
+| 11 | [`backlog/phase-11-incremental-commit-cache.md`](./backlog/phase-11-incremental-commit-cache.md) | Month-chunked commit cache, progressive background backfill, search-request throttle, `Retry-After` handling. Eliminates secondary rate-limit `403`s on first/cold loads. Implements `spec.md §3.D.1`. |
 
 ### Archive (shipped)
 

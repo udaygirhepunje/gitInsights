@@ -4,6 +4,7 @@ import { ChevronDownIcon } from '@primer/octicons-react';
 import { useState } from 'react';
 import styled from 'styled-components';
 
+import { toIsoDateKey } from '../../analytics/dates';
 import {
   MAX_WINDOW_DAYS,
   PRESET_LABELS,
@@ -276,8 +277,8 @@ export function TimeframePicker(): JSX.Element {
     if (range[0] && range[1] && windowSpanDays(range[0], range[1]) <= MAX_WINDOW_DAYS) {
       void setTimeframe({
         kind: 'custom',
-        from: range[0].toISOString().slice(0, 10),
-        to: range[1].toISOString().slice(0, 10),
+        from: toIsoDateKey(range[0]),
+        to: toIsoDateKey(range[1]),
       });
     }
   }

@@ -1,4 +1,5 @@
 import type { ViewerContributions } from '../../api/queries';
+import type { CommitsCoverage } from '../../api/commitsByDayRange';
 
 // Flattens contribution payloads into a date-sorted list of
 // `(date, count, weekday)` rows — the shape the heatmap, a11y table, and
@@ -8,6 +9,8 @@ export type HeatmapRow = {
   date: string;
   count: number;
   weekday: number;
+  /** True while that month's chunk is not yet merged (Phase 11 backfill). */
+  pending?: boolean;
 };
 
 export type HeatmapDatum = HeatmapRow & {
@@ -56,12 +59,19 @@ export function rollingYearWindow(now = new Date()): ContributionWindow {
   return { from, to };
 }
 
+function isDateMonthPending(isoDate: string, coverage?: CommitsCoverage): boolean {
+  if (!coverage?.backfilling) return false;
+  const month = isoDate.slice(0, 7);
+  return !coverage.loadedMonthKeys.includes(month);
+}
+
 // Same `HeatmapRow[]` shape, but built from the per-day commit dict
 // `useViewerCommitsByDay` returns. Iterates every date in the window so the
 // heatmap renders zero-cells for days with no commits.
 export function commitsToHeatmapRows(
   byDate: Record<string, number>,
   window: ContributionWindow,
+  coverage?: CommitsCoverage,
 ): HeatmapRow[] {
   const rows: HeatmapRow[] = [];
   const cursor = new Date(window.from);
@@ -73,7 +83,12 @@ export function commitsToHeatmapRows(
     const m = String(cursor.getMonth() + 1).padStart(2, '0');
     const day = String(cursor.getDate()).padStart(2, '0');
     const date = `${y}-${m}-${day}`;
-    rows.push({ date, count: byDate[date] ?? 0, weekday: cursor.getDay() });
+    rows.push({
+      date,
+      count: byDate[date] ?? 0,
+      weekday: cursor.getDay(),
+      pending: isDateMonthPending(date, coverage),
+    });
     cursor.setDate(cursor.getDate() + 1);
   }
   return rows;

@@ -44,7 +44,7 @@ describe('migrateUserData', () => {
     expect(result.data.theme).toBe('light');
     expect(result.data.workweek.workdays).toEqual([1, 2, 3, 4, 5]);
     expect(result.data.holidays.regions).toEqual([]);
-    expect(result.data.preferences.timeframe).toEqual({ kind: 'preset', preset: 'last-year' });
+    expect(result.data.preferences.timeframe).toEqual({ kind: 'preset', preset: 'last-30-days' });
   });
 
   it('migrates v1 docs forward by adding sync metadata fields', () => {
@@ -102,5 +102,25 @@ describe('migrateUserData', () => {
     };
     const result = migrateUserData(v2);
     expect(result.data.preferences.timeframe).toEqual({ kind: 'preset', preset: 'last-30-days' });
+  });
+
+  it('migrates v3 → v4 (Phase 11): bumps schema only; keeps timeframe', () => {
+    const v3 = {
+      schemaVersion: 3,
+      theme: 'light' as const,
+      workweek: { workdays: [1, 2, 3, 4, 5] },
+      streakMode: 'skip-non-workdays' as const,
+      pto: [],
+      holidays: { regions: [], overrides: [] },
+      bento: { tileOrder: [], hiddenTiles: [] },
+      preferences: { timeframe: { kind: 'preset' as const, preset: 'last-year' as const } },
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      lastWriterDeviceId: 'x',
+    };
+    const result = migrateUserData(v3);
+    expect(result.migrated).toBe(true);
+    expect(result.fromVersion).toBe(3);
+    expect(result.data.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(result.data.preferences.timeframe).toEqual({ kind: 'preset', preset: 'last-year' });
   });
 });

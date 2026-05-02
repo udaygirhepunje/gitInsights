@@ -14,7 +14,7 @@ export function emitRateLimit(info: RateLimitInfo): void {
 export function clearRateLimit(): void {
   lastEvent = null;
   for (const listener of listeners) {
-    listener({ kind: 'rate-limit', resetAt: null, remaining: null });
+    listener({ kind: 'rate-limit', resetAt: null, remaining: null, retryAfterAt: null });
   }
 }
 
