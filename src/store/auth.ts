@@ -1,11 +1,7 @@
 import { create } from 'zustand';
 
 import { clearAllQueryCache } from '../api/queryClient';
-import {
-  fetchViewer,
-  GitHubAuthError,
-  type Viewer,
-} from '../lib/github';
+import { fetchViewer, GitHubAuthError, type Viewer } from '../lib/github';
 import { clearAppIndexedDb, clearLocalStorageNamespace } from '../lib/storage';
 
 // Auth lifecycle: token in localStorage under `gi.auth.token`, boot
@@ -78,77 +74,83 @@ export function buildAuthorizeUrl(extraScopes: readonly string[] = []): string {
   return `${GITHUB_AUTHORIZE_URL}?${params.toString()}`;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  token: readToken(),
-  viewer: null,
-  status: 'idle',
-  error: null,
+export const useAuthStore = create<AuthState>((set, get) => {
+  // If a token exists, start in `validating` so route guards don’t treat the
+  // first paint as logged-out (RequireAuth would bounce to `/`, then Landing
+  // would redirect authed users to `/dashboard` — losing deep links like `/settings`).
+  const initialToken = readToken();
+  return {
+    token: initialToken,
+    viewer: null,
+    status: initialToken ? 'validating' : 'idle',
+    error: null,
 
-  // Called once from <App /> on mount. If a token is sitting in localStorage
-  // from a prior session, validate it cheaply; on 401 we clear and route the
-  // user back to `/` (the App-level effect handles the redirect — keeps this
-  // store router-agnostic and easy to test).
-  bootstrap: async () => {
-    const token = readToken();
-    if (!token) {
-      set({ token: null, viewer: null, status: 'idle', error: null });
-      return;
-    }
-    set({ token, status: 'validating', error: null });
-    try {
-      const viewer = await fetchViewer(token);
-      set({ viewer, status: 'authenticated' });
-    } catch (err) {
-      if (err instanceof GitHubAuthError) {
-        // Spec §3.H: 401 / token invalid → silent clear, App-level effect
-        // routes back to `/`.
-        dropToken();
+    // Called once from <App /> on mount. If a token is sitting in localStorage
+    // from a prior session, validate it cheaply; on 401 we clear and route the
+    // user back to `/` (the App-level effect handles the redirect — keeps this
+    // store router-agnostic and easy to test).
+    bootstrap: async () => {
+      const token = readToken();
+      if (!token) {
         set({ token: null, viewer: null, status: 'idle', error: null });
         return;
       }
-      // Network blip or 5xx — keep the token (the user might just be offline)
-      // but mark the boot as errored so the UI can decide whether to retry.
-      set({ status: 'error', error: 'viewer_fetch_failed' });
-    }
-  },
+      set({ token, status: 'validating', error: null });
+      try {
+        const viewer = await fetchViewer(token);
+        set({ viewer, status: 'authenticated' });
+      } catch (err) {
+        if (err instanceof GitHubAuthError) {
+          // Spec §3.H: 401 / token invalid → silent clear, App-level effect
+          // routes back to `/`.
+          dropToken();
+          set({ token: null, viewer: null, status: 'idle', error: null });
+          return;
+        }
+        // Network blip or 5xx — keep the token (the user might just be offline)
+        // but mark the boot as errored so the UI can decide whether to retry.
+        set({ status: 'error', error: 'viewer_fetch_failed' });
+      }
+    },
 
-  // Called by /callback after the proxy returns an access token. Persists,
-  // validates, and resolves with the viewer so the callback can wait for a
-  // confirmed session before navigating to /dashboard.
-  setSession: async (token: string) => {
-    writeToken(token);
-    set({ token, status: 'validating', error: null });
-    try {
-      const viewer = await fetchViewer(token);
-      set({ viewer, status: 'authenticated' });
-      return viewer;
-    } catch (err) {
-      dropToken();
+    // Called by /callback after the proxy returns an access token. Persists,
+    // validates, and resolves with the viewer so the callback can wait for a
+    // confirmed session before navigating to /dashboard.
+    setSession: async (token: string) => {
+      writeToken(token);
+      set({ token, status: 'validating', error: null });
+      try {
+        const viewer = await fetchViewer(token);
+        set({ viewer, status: 'authenticated' });
+        return viewer;
+      } catch (err) {
+        dropToken();
+        set({ token: null, viewer: null, status: 'idle', error: null });
+        throw err;
+      }
+    },
+
+    login: () => {
+      window.location.assign(buildAuthorizeUrl());
+    },
+
+    // Re-authorization for opt-in scope upgrades (spec §3.A incremental scopes,
+    // §3.G sync). Same /callback path; the proxy returns a fresh token that
+    // replaces the old one. Caller is responsible for marking intent in
+    // localStorage *before* calling so /callback can act on it post-redirect.
+    reauthorize: (extraScopes) => {
+      window.location.assign(buildAuthorizeUrl(extraScopes));
+    },
+
+    logout: async () => {
+      // Order matters: clear storage BEFORE in-memory state so any other
+      // store/effect that reads from localStorage during the same tick sees
+      // the wiped values.
+      clearLocalStorageNamespace();
+      await clearAllQueryCache();
+      await clearAppIndexedDb();
       set({ token: null, viewer: null, status: 'idle', error: null });
-      throw err;
-    }
-  },
-
-  login: () => {
-    window.location.assign(buildAuthorizeUrl());
-  },
-
-  // Re-authorization for opt-in scope upgrades (spec §3.A incremental scopes,
-  // §3.G sync). Same /callback path; the proxy returns a fresh token that
-  // replaces the old one. Caller is responsible for marking intent in
-  // localStorage *before* calling so /callback can act on it post-redirect.
-  reauthorize: (extraScopes) => {
-    window.location.assign(buildAuthorizeUrl(extraScopes));
-  },
-
-  logout: async () => {
-    // Order matters: clear storage BEFORE in-memory state so any other
-    // store/effect that reads from localStorage during the same tick sees
-    // the wiped values.
-    clearLocalStorageNamespace();
-    await clearAllQueryCache();
-    await clearAppIndexedDb();
-    set({ token: null, viewer: null, status: 'idle', error: null });
-    void get;
-  },
-}));
+      void get;
+    },
+  };
+});
