@@ -49,8 +49,8 @@ const TileBody = styled(ScrollArea)`
   min-height: 0;
 ` as typeof ScrollArea;
 
-const DEFAULT_EMPTY = 'nothing here yet. either you\u2019re new, on PTO, or actually resting. all valid.';
-const DEFAULT_ERROR = 'couldn\u2019t load this. github blinked. try again.';
+const DEFAULT_EMPTY = 'nothing here yet. either you’re new, on PTO, or actually resting. all valid.';
+const DEFAULT_ERROR = 'couldn’t load this. github blinked. try again.';
 
 export function BentoTile({
   title,

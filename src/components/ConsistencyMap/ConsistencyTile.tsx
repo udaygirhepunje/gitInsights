@@ -68,8 +68,8 @@ export function ConsistencyTile(): JSX.Element {
       state={state}
       area={BENTO_AREAS.Consistency}
       onRetry={() => void refetch()}
-      emptyMessage="no commits in the last 365 days. either you\u2019re new, on PTO, or actually resting. all valid."
-      errorMessage="couldn\u2019t load your commits. github blinked. try again."
+      emptyMessage="no commits in the last 365 days. either you’re new, on PTO, or actually resting. all valid."
+      errorMessage="couldn’t load your commits. github blinked. try again."
       footer={
         state === 'loaded' ? (
           <Group justify="space-between">
