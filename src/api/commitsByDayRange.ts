@@ -152,21 +152,37 @@ export async function ensureCommitsByDayRange(
   return mergeChunks(chunks, fromIso, toIso, coverage);
 }
 
+export type PrefetchMonthResult = {
+  chunk: MonthChunk | null;
+  /** True when this call hit GitHub (new month or stale unsealed refresh). */
+  didNetworkFetch: boolean;
+};
+
+/**
+ * Backfill helper: load a month from cache when sealed/fresh; otherwise fetch.
+ * Callers should only invalidate `commitsByDay` React Query when `didNetworkFetch` is true —
+ * otherwise periodic backfill would re-run the full query every ~15s for no reason.
+ */
 export async function prefetchMonthIfMissing(
   clients: GitHubClientsLite,
   login: string,
   monthKey: string,
   priority: 'foreground' | 'backfill',
-): Promise<MonthChunk | null> {
+): Promise<PrefetchMonthResult> {
   const existing = await getChunk(login, monthKey);
-  if (existing && isMonthSealed(monthKey)) return existing;
+  if (existing && isMonthSealed(monthKey)) {
+    return { chunk: existing, didNetworkFetch: false };
+  }
   if (existing && !isMonthSealed(monthKey)) {
     const age = Date.now() - Date.parse(existing.fetchedAt);
-    if (Number.isFinite(age) && age >= 0 && age < DEFAULT_STALE_MS) return existing;
+    if (Number.isFinite(age) && age >= 0 && age < DEFAULT_STALE_MS) {
+      return { chunk: existing, didNetworkFetch: false };
+    }
   }
   try {
-    return await fetchAndStoreMonth(clients, login, monthKey, priority);
+    const chunk = await fetchAndStoreMonth(clients, login, monthKey, priority);
+    return { chunk, didNetworkFetch: true };
   } catch {
-    return null;
+    return { chunk: null, didNetworkFetch: false };
   }
 }

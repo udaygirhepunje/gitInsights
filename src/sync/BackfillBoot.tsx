@@ -41,8 +41,8 @@ export function BackfillBoot(): null {
         if (cancelled || genRef.current !== myGen) break;
         const month = months[i];
         if (month === undefined) break;
-        await prefetchMonthIfMissing(clients, login, month, 'backfill');
-        invalidateCommitsQueries(queryClient, login);
+        const { didNetworkFetch } = await prefetchMonthIfMissing(clients, login, month, 'backfill');
+        if (didNetworkFetch) invalidateCommitsQueries(queryClient, login);
       }
     };
 

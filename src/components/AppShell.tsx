@@ -47,7 +47,6 @@ const BrandWord = styled(Text)`
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--gi-fg-default);
-  text-transform: lowercase;
 ` as typeof Text;
 
 function viewerInitials(login: string, name: string | null): string {

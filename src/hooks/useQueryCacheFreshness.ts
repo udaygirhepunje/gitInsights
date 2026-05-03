@@ -13,6 +13,9 @@ function formatAgo(ms: number): string {
 }
 
 /** Latest successful query `dataUpdatedAt` across the cache — drives "cache · … ago" in the shell. */
+/** How often the "cache · … ago" label recomputes (does not affect query freshness). */
+const FRESHNESS_UI_TICK_MS = 10_000;
+
 export function useQueryCacheFreshness(enabled: boolean): string | null {
   const queryClient = useQueryClient();
   const [tick, setTick] = useState(0);
@@ -21,7 +24,7 @@ export function useQueryCacheFreshness(enabled: boolean): string | null {
     if (!enabled) return;
     const id = window.setInterval(() => {
       setTick((t) => t + 1);
-    }, 1000);
+    }, FRESHNESS_UI_TICK_MS);
     return () => window.clearInterval(id);
   }, [enabled]);
 
