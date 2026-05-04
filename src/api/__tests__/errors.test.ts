@@ -63,9 +63,9 @@ describe('detectRateLimit', () => {
 
 describe('parseSsoHeader / detectSsoRequired', () => {
   it('parses required + url', () => {
-    expect(
-      parseSsoHeader('required; url=https://github.com/orgs/acme/sso?return_to=foo'),
-    ).toEqual({ ssoUrl: 'https://github.com/orgs/acme/sso?return_to=foo' });
+    expect(parseSsoHeader('required; url=https://github.com/orgs/acme/sso?return_to=foo')).toEqual({
+      ssoUrl: 'https://github.com/orgs/acme/sso?return_to=foo',
+    });
   });
 
   it('parses partial-results header', () => {
@@ -100,6 +100,24 @@ describe('parseSsoHeader / detectSsoRequired', () => {
 });
 
 describe('classifyError', () => {
+  it('classifies GraphqlResponseError with x-github-sso as org SSO (not generic forbidden)', async () => {
+    const { GraphqlResponseError } = await import('@octokit/graphql');
+    const err = new GraphqlResponseError(
+      { method: 'POST', url: 'https://api.github.com/graphql' },
+      { 'x-github-sso': 'required; url=https://github.com/orgs/acme/sso' },
+      {
+        data: undefined,
+        errors: [
+          { type: 'FORBIDDEN', message: 'Resource protected by organization SAML enforcement.' },
+        ],
+      },
+    );
+    expect(classifyError(err)).toEqual({
+      kind: 'sso-required',
+      ssoUrl: 'https://github.com/orgs/acme/sso',
+    });
+  });
+
   it('passes through GitHubApiError info', () => {
     const err = new Error('boom') as Error;
     const info = classifyError(err);
@@ -118,9 +136,9 @@ describe('isRetryable', () => {
   });
 
   it('does not retry rate limit, sso, unauthorized, not-found', () => {
-    expect(isRetryable({ kind: 'rate-limit', resetAt: null, remaining: 0, retryAfterAt: null })).toBe(
-      false,
-    );
+    expect(
+      isRetryable({ kind: 'rate-limit', resetAt: null, remaining: 0, retryAfterAt: null }),
+    ).toBe(false);
     expect(isRetryable({ kind: 'sso-required', ssoUrl: null })).toBe(false);
     expect(isRetryable({ kind: 'unauthorized' })).toBe(false);
     expect(isRetryable({ kind: 'not-found' })).toBe(false);

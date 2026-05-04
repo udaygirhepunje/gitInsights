@@ -30,6 +30,7 @@ const MarkGithubOcticon = MarkGithubIcon as unknown as FC<
 import { useAuth } from '../hooks/useAuth';
 import { useQueryCacheFreshness } from '../hooks/useQueryCacheFreshness';
 import { RateLimitBanner } from './RateLimitBanner';
+import { SsoRequiredBanner } from './SsoRequiredBanner';
 
 // App chrome: brand + pill nav (sm+) + cache freshness + avatar menu; below sm,
 // dashboard / profile / settings live in the avatar menu only.
@@ -394,7 +395,10 @@ export function AppShell(): JSX.Element {
           >
             <Stack gap={0} style={{ flex: 1, minHeight: 0, width: '100%' }}>
               <Box px="md">
-                <RateLimitBanner />
+                <Stack gap="sm">
+                  <SsoRequiredBanner />
+                  <RateLimitBanner />
+                </Stack>
               </Box>
               <Box style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, width: '100%' }}>
                 <Outlet />
@@ -404,6 +408,7 @@ export function AppShell(): JSX.Element {
         ) : (
           <Container size="lg" py="lg">
             <Stack gap="md">
+              <SsoRequiredBanner />
               <RateLimitBanner />
               <Outlet />
             </Stack>

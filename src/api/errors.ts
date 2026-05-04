@@ -1,9 +1,11 @@
 import { RequestError } from '@octokit/request-error';
 import { GraphqlResponseError } from '@octokit/graphql';
 
+import { emitGlobalGitHubSignals } from './events';
+
 // Spec §3.H: these are the only error shapes the data layer surfaces. Tile UI
 // (Phase 4) discriminates on `kind` to pick the right empty/error state; the
-// global rate-limit banner subscribes via the event emitter in `events.ts`.
+// global rate-limit and org-SSO banners subscribe via the event emitter in `events.ts`.
 
 export type GitHubErrorKind =
   | { kind: 'rate-limit'; resetAt: Date | null; remaining: number | null; retryAfterAt: Date | null }
@@ -98,14 +100,19 @@ export function parseSsoHeader(value: string | undefined): { ssoUrl: string | nu
   return { ssoUrl: match?.[1] ?? null };
 }
 
+/** SAML / SSO: GitHub sends `x-github-sso` on REST 403 and on some GraphQL 200 + `errors` responses. */
+export function detectSsoFromHeaders(headers: HeaderBag): Extract<GitHubErrorKind, { kind: 'sso-required' }> | null {
+  const sso = parseSsoHeader(readHeader(headers, 'x-github-sso'));
+  if (!sso) return null;
+  return { kind: 'sso-required', ssoUrl: sso.ssoUrl };
+}
+
 export function detectSsoRequired(
   status: number,
   headers: HeaderBag,
 ): Extract<GitHubErrorKind, { kind: 'sso-required' }> | null {
   if (status !== 403) return null;
-  const sso = parseSsoHeader(readHeader(headers, 'x-github-sso'));
-  if (!sso) return null;
-  return { kind: 'sso-required', ssoUrl: sso.ssoUrl };
+  return detectSsoFromHeaders(headers);
 }
 
 function classifyHttpError(
@@ -147,6 +154,8 @@ export function classifyError(error: unknown): GitHubErrorKind {
   if (error instanceof GitHubApiError) return error.info;
 
   if (error instanceof GraphqlResponseError) {
+    const ssoFromHeaders = detectSsoFromHeaders(error.headers as HeaderBag);
+    if (ssoFromHeaders) return ssoFromHeaders;
     const fromGraphql = classifyGraphqlErrors(error.errors as GraphqlErrorEntry[]);
     if (fromGraphql) return fromGraphql;
     return {
@@ -177,7 +186,14 @@ export function classifyError(error: unknown): GitHubErrorKind {
 
 export function toGitHubApiError(error: unknown): GitHubApiError {
   if (error instanceof GitHubApiError) return error;
-  return new GitHubApiError(classifyError(error));
+  const e = new GitHubApiError(
+    classifyError(error),
+    error instanceof Error ? error.message : undefined,
+  );
+  if (e.info.kind === 'rate-limit' || e.info.kind === 'sso-required') {
+    emitGlobalGitHubSignals(e.info);
+  }
+  return e;
 }
 
 export function isRetryable(info: GitHubErrorKind): boolean {

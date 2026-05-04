@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { clearSsoRequired } from '../api/events';
 import { clearAllQueryCache } from '../api/queryClient';
 import { fetchViewer, GitHubAuthError, type Viewer } from '../lib/github';
 import { clearAppIndexedDb, clearLocalStorageNamespace } from '../lib/storage';
@@ -149,6 +150,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       clearLocalStorageNamespace();
       await clearAllQueryCache();
       await clearAppIndexedDb();
+      clearSsoRequired();
       set({ token: null, viewer: null, status: 'idle', error: null });
       void get;
     },

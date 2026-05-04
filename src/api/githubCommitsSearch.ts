@@ -2,7 +2,7 @@ import type { Octokit } from '@octokit/rest';
 import { RequestError } from '@octokit/request-error';
 
 import type { CachedCommitDayEntry, MonthChunk } from './commitCache';
-import { classifyError } from './errors';
+import { classifyError, toGitHubApiError } from './errors';
 import { enqueueSearchCommits, pauseAfterSearchFailure } from './searchQueue';
 
 const COMMITS_PAGE_SIZE = 100;
@@ -178,7 +178,7 @@ export async function searchCommitsInDateRange(
         const info = classifyError(err);
         if (info.kind === 'rate-limit') pauseAfterSearchFailure(err);
       }
-      throw err;
+      throw toGitHubApiError(err);
     }
 
     const totalCount = firstPage.data.total_count ?? 0;
@@ -207,7 +207,7 @@ export async function searchCommitsInDateRange(
           const info = classifyError(err);
           if (info.kind === 'rate-limit') pauseAfterSearchFailure(err);
         }
-        throw err;
+        throw toGitHubApiError(err);
       }
     }
   };

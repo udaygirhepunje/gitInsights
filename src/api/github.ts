@@ -2,13 +2,8 @@ import { graphql as octokitGraphql } from '@octokit/graphql';
 import { Octokit } from '@octokit/rest';
 
 import { ensureCommitsByDayRange, type CommitsByDay } from './commitsByDayRange';
-import {
-  classifyError,
-  detectRateLimit,
-  GitHubApiError,
-  toGitHubApiError,
-} from './errors';
-import { emitRateLimit } from './events';
+import { detectRateLimit, toGitHubApiError } from './errors';
+import { emitGlobalGitHubSignals } from './events';
 import {
   REPO_COMMIT_HISTORY_QUERY,
   REPO_LANGUAGES_QUERY,
@@ -47,16 +42,13 @@ export function createGitHubClients(token: string): GitHubClients {
   return { graphql, rest };
 }
 
-// Wrap any data-layer call so the global rate-limit banner sees 403 events and
-// callers always receive a typed `GitHubApiError`. Keep this private — the
-// typed wrappers below are the public surface.
+// Wrap any data-layer call so global banners see rate-limit / org-SSO signals
+// (`toGitHubApiError` → `events.ts`) and callers always receive `GitHubApiError`.
 async function callWithErrorMapping<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
   } catch (err) {
-    const info = classifyError(err);
-    if (info.kind === 'rate-limit') emitRateLimit(info);
-    throw new GitHubApiError(info, err instanceof Error ? err.message : undefined);
+    throw toGitHubApiError(err);
   }
 }
 
@@ -197,7 +189,7 @@ export function makeRepoCommitFetcher(clients: GitHubClients) {
       const response = await clients.rest.repos.getCommit({ owner, repo, ref });
       const headers = response.headers as Record<string, string | undefined>;
       const rateLimit = detectRateLimit(response.status, headers, undefined);
-      if (rateLimit) emitRateLimit(rateLimit);
+      if (rateLimit) emitGlobalGitHubSignals(rateLimit);
       return response.data;
     } catch (err) {
       throw toGitHubApiError(err);
