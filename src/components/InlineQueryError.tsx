@@ -13,13 +13,13 @@ function copyFor(info: GitHubErrorKind): { title: string; body: string } {
       return {
         title: 'github rate-limited us',
         body: info.resetAt
-          ? `resets at ${info.resetAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. cached data sticks around.`
-          : 'cached data sticks around. try again in a bit.',
+          ? `resets at ${info.resetAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. what you already see here stays until then.`
+          : 'hang tight. try again in a bit.',
       };
     case 'sso-required':
       return {
-        title: 'sso authorization needed',
-        body: "your org requires saml/sso for this token. authorize it on github, then refresh.",
+        title: 'org SSO needed',
+        body: 'a workplace org wants you to approve this app on github again. link below, then retry.',
       };
     case 'unauthorized':
       return {

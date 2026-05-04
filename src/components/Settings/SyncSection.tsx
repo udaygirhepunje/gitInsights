@@ -204,7 +204,7 @@ export function SyncSection(): JSX.Element {
         {enabled && gistId ? (
           <SettingsRow
             label="remove from cloud"
-            hint="deletes the gist. local data stays."
+            hint="deletes the gist. your copy on this device stays."
           >
             <Button variant="outline" color="primerRed" size="sm" onClick={openDelete}>
               delete cloud copy
@@ -323,7 +323,7 @@ export function SyncSection(): JSX.Element {
 
           <Text size="xs" c="dimmed" lh={1.5}>
             the gist is private, but it lives on github&apos;s servers. that&apos;s the one place we
-            relax the &quot;data stays in your browser&quot; promise.{' '}
+            step outside &quot;everything stays on your machine&quot;.{' '}
             <Anchor href={SCOPE_DOC_URL} target="_blank" rel="noreferrer" size="xs">
               about the gist scope
             </Anchor>
@@ -347,7 +347,7 @@ export function SyncSection(): JSX.Element {
         body={
           <Text size="sm">
             removes the <code>gitinsights:user-data:v1</code> gist from your github account.
-            local data stays. you can re-create it anytime by syncing again.
+            what&apos;s on this device stays. you can re-create the cloud copy anytime by syncing again.
           </Text>
         }
         confirmLabel="delete cloud copy"

@@ -95,8 +95,8 @@ const LANDING_STEPS: ReadonlyArray<{ step: string; title: string; body: string }
   },
   {
     step: '2',
-    title: 'fetch, then stay local',
-    body: 'we call github with your token; responses are cached in indexeddb and local storage on this machine. your token never hits our deploy beyond the one-time code exchange (see next).',
+    title: 'fetch, then stay on this device',
+    body: 'we call github with your token; answers stay on this machine between visits. your token never hits our deploy beyond the one-time code exchange (see next).',
   },
   {
     step: '3',
@@ -108,7 +108,7 @@ const LANDING_STEPS: ReadonlyArray<{ step: string; title: string; body: string }
 const TRUST_BULLETS: ReadonlyArray<string> = [
   'single user: no org rollups, no “team” view, no manager mode.',
   'read-only on github’s api — we don’t open issues, push commits, or edit anything.',
-  'caching and settings stay under your profile on this device unless you turn on gist sync (still your gist).',
+  'what we pull from github for the dashboard stays on this profile on this device unless you turn on gist sync (still your gist).',
 ];
 
 const PreviewStack = styled(Box)`

@@ -34,7 +34,7 @@ export function DataControlsSection(): JSX.Element {
     setStatus({
       tone: 'success',
       message:
-        'local query cache and month-chunk commit store cleared. next dashboard load hits github fresh.',
+        'saved github responses and commit rollups cleared on this device. next load pulls fresh from github.',
     });
   };
 
@@ -70,12 +70,12 @@ export function DataControlsSection(): JSX.Element {
     <SettingsSection
       id="data"
       title="account"
-      description="local cache, session, and the github authorization itself."
+      description="saved dashboard data on this device, session, and your github sign-in."
     >
       <Stack gap="sm">
         <Group gap="sm" wrap="wrap">
           <Button variant="outline" color="primerRed" onClick={() => setPendingClearCache(true)}>
-            clear local cache
+            clear saved github data
           </Button>
           <Button variant="outline" color="primerYellow" onClick={() => setPendingRefreshCommits(true)}>
             refresh all commit data
@@ -96,9 +96,9 @@ export function DataControlsSection(): JSX.Element {
 
       <ConfirmDialog
         opened={pendingClearCache}
-        title="clear local cache?"
-        body="drops the cached commit data, repo metadata, and computed analytics. next dashboard load hits github fresh. settings (theme, pto, holidays) stay."
-        confirmLabel="clear cache"
+        title="clear saved github data?"
+        body="drops stored commits, repo metadata, and computed tiles from this device. next dashboard load talks to github again. settings (theme, pto, holidays) stay."
+        confirmLabel="clear saved data"
         onCancel={() => setPendingClearCache(false)}
         onConfirm={() => {
           setPendingClearCache(false);
@@ -123,8 +123,8 @@ export function DataControlsSection(): JSX.Element {
         title="log out?"
         body={
           syncEnabled
-            ? 'wipes your session and local data on this device. sync is on, so your settings come back when you log in again. cloud copy stays on github.'
-            : 'wipes your session and local data on this device. sync is off, so your settings (theme, pto, holidays, bento) will be gone. export first or turn on sync if you want them back.'
+            ? 'wipes your session and everything gitInsights saved on this device. sync is on, so your settings come back when you log in again. cloud copy stays on github.'
+            : 'wipes your session and everything gitInsights saved on this device. sync is off, so your settings (theme, pto, holidays, bento) will be gone. export first or turn on sync if you want them back.'
         }
         confirmLabel="log out"
         onCancel={() => setPendingLogout(false)}

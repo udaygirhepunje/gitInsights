@@ -29,15 +29,14 @@ export function SsoRequiredBanner(): JSX.Element | null {
     >
       <Stack gap="xs">
         <Text size="sm">
-          Your personal login is still valid. An organization you use requires you to re-authorize
-          SAML SSO for this OAuth app on GitHub.
+          An organization you use requires you to re-authorize SAML SSO for this OAuth app on GitHub.
         </Text>
         <Group gap="sm" wrap="wrap">
           <Anchor href={authorizeHref} target="_blank" rel="noreferrer noopener" size="sm">
-            open GitHub to authorize SSO
+            approve on github
           </Anchor>
           <Button variant="light" color="primerBlue" size="compact-xs" onClick={handleRetry}>
-            retry after authorizing
+            try again
           </Button>
         </Group>
       </Stack>

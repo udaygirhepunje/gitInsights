@@ -300,14 +300,14 @@ export function DayCommitsModal(props: DayCommitsModalProps): JSX.Element {
         <Stack gap="sm">
           <Text size="sm" c="dimmed">
             {props.expectedCount === 0
-              ? 'No non-merge commits on this day in your local cache (same as heatmap empty cell).'
-              : 'Detailed commit list is missing locally for this day.'}
+              ? 'no non-merge commits on this day (same as an empty heatmap cell).'
+              : 'we don&apos;t have the per-commit list for this day yet.'}
           </Text>
           {showMismatch ? (
             <Text size="xs" c="primerYellow">
               The heatmap shows {props.expectedCount.toLocaleString()} commit
-              {props.expectedCount === 1 ? '' : 's'}, but IndexedDB did not store per-commit rows yet.
-              Settings → account → refresh commit data to refill the rich cache, then open this again.
+              {props.expectedCount === 1 ? '' : 's'}, but the detailed list hasn&apos;t been filled in yet.
+              settings → account → refresh all commit data, then open this day again.
             </Text>
           ) : null}
         </Stack>

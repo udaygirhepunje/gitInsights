@@ -2,8 +2,7 @@ import { Anchor, List, Stack, Text, Title } from '@mantine/core';
 
 const REVOKE_APPS = 'https://github.com/settings/applications';
 
-// Spec §10: short, direct, no corporate wellness tone. This page is the legal
-// truth of what touches disk — names real keys and storage APIs.
+// Spec §10: short, direct. Accurate without leading with storage API jargon.
 export function PrivacyPage(): JSX.Element {
   return (
     <Stack gap="lg" maw={720}>
@@ -47,59 +46,52 @@ export function PrivacyPage(): JSX.Element {
         document to a private gist in your account, as that feature describes
         in settings.
       </Text>
-      <Title order={2}>where the token lives</Title>
+      <Title order={2}>your sign-in token</Title>
       <Text>
-        after login, your oauth access token sits in{' '}
-        <code>localStorage</code> under <code>gi.auth.token</code>. we need it
-        so every graphql call is signed as you. we do not have a server that
-        stores it; closing the tab does not revoke it until you log out or wipe
-        storage.
+        after login, your oauth access token stays only in persistent storage for this site in your
+        browser. we need it so every graphql call is signed as you. we do not have a server that
+        stores it; closing the tab does not revoke it until you log out or clear site data for this
+        origin.
       </Text>
-      <Title order={2}>what else we stash locally</Title>
+      <Title order={2}>what gitInsights keeps on this device</Title>
       <List spacing="xs" size="sm" type="ordered">
         <List.Item>
-          <code>gi.user-data</code> in indexeddb — settings, pto, holidays,
-          tile layout, theme, and anything else you configure.
+          settings you touch — pto, holidays, tile layout, theme, and the rest of the settings area.
         </List.Item>
         <List.Item>
-          <code>gi.rq-cache</code> — cached github responses so the dashboard
-          still paints when the network flakes.
+          saved github responses so the dashboard still paints when the network flakes or you come
+          back tomorrow.
         </List.Item>
         <List.Item>
-          other <code>gi.*</code> keys in <code>localStorage</code> for sync
-          prefs, device id, and small ui flags — all namespaced so one sweep can
-          clear them.
+          small prefs for sync, install identity for sync logs, and a few ui flags — all under the
+          same gitInsights namespace so one logout sweep clears them.
         </List.Item>
       </List>
       <Title order={2}>analytics</Title>
       <Text>
-        every chart, heatmap, wlb audit, and commit momentum score is computed in
-        your browser (workers included). nothing is shipped to our analytics
-        product because we do not run one. if you do not trust that, open devtools
-        and watch the network tab — you should see github and the token proxy,
-        full stop.
+        every chart, heatmap, wlb audit, and commit momentum score is computed on this device
+        (workers included). nothing is shipped to our analytics product because we do not run one.
+        if you do not trust that, open devtools and watch the network tab — you should see github and
+        the token proxy, full stop.
       </Text>
       <Title order={2}>optional sync</Title>
       <Text>
         if you turn on sync, we write a private gist named{' '}
         <code>gi.user-data.json</code> to your github account. that gist holds a
         json export of your settings blob. we never see the contents — the token
-        in your browser does the read/write. deleting the gist from github is on
+        on this device does the read/write. deleting the gist from github is on
         you; the app also offers &quot;delete cloud copy&quot; inside settings.
       </Text>
       <Title order={2}>how to wipe everything here</Title>
       <List spacing="xs" size="sm">
         <List.Item>
-          hit <strong>log out</strong> in the header. that removes every{' '}
-          <code>gi.*</code> key from <code>localStorage</code> except{' '}
-          <code>gi.device.id</code> (a random install id for sync logs). it also
-          drops indexeddb databases whose names start with <code>gi.</code> and
-          clears the react-query cache.
+          hit <strong>log out</strong> in the header. that removes gitInsights&apos; saved sign-in,
+          dashboard fetch snapshots, and settings stored for this site. we leave a tiny random install
+          id behind so sync logs stay honest if you sign back in; it holds no account data.
         </List.Item>
         <List.Item>
-          want a totally clean slate? after logout, manually remove{' '}
-          <code>gi.device.id</code> from site data in the browser, or use
-          &quot;clear site data&quot; for this origin.
+          want a totally clean slate? after logout, use your browser&apos;s &quot;clear site data&quot;
+          control for this origin, or remove stored data for this site by hand.
         </List.Item>
         <List.Item>
           revoke the oauth app anytime so old tokens die:{' '}

@@ -19,7 +19,7 @@ export function RateLimitBanner(): JSX.Element | null {
       role="status"
       aria-live="polite"
     >
-      resets at {formatResetTime(info.resetAt)}. cached data below.
+      resets at {formatResetTime(info.resetAt)}. what already loaded below stays until then.
     </Alert>
   );
 }

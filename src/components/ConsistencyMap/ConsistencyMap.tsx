@@ -586,7 +586,7 @@ export function ConsistencyMap({
                           cell.facts.label,
                           formatCountLine(cell.facts.count).replace(/\.$/, ''),
                           cell.facts.violation ? 'commits on off-day' : '',
-                          canActivateDay ? 'open commit list from local cache' : '',
+                          canActivateDay ? 'open commit list for this day' : '',
                         ]
                           .filter((s) => Boolean(s && String(s).trim()))
                           .join('. ')

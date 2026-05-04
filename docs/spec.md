@@ -117,7 +117,7 @@ Reference implementation: `docs/oauth-token-proxy-example.js` (illustrative, not
 - TanStack Query is the single read path for all GitHub data.
 - Persist the query cache to IndexedDB so repeat sessions don't re-spend the rate budget.
 - Default `staleTime`: 1 hour for contribution/commit history, 24 hours for repo metadata, 5 minutes for `viewer`.
-- On `403` rate-limit response: surface a non-blocking banner with the reset time and serve cached data.
+- On `403` rate-limit response: surface a non-blocking banner with the reset time; keep showing what already loaded.
 - Pagination: cursor-based via GraphQL `pageInfo`; cap at a configurable max (e.g., 5,000 commits per repo per fetch) with a "load more" affordance.
 
 #### D.1 Incremental Commit Cache (search/commits)
@@ -172,7 +172,7 @@ Some product data is user-authored, not GitHub-derived (PTO calendar, streak mod
 - Shape: a single versioned JSON document (`schemaVersion`, `preferences`, `pto`); migrations live alongside the schema.
 - Cross-device sync: optional, opt-in, via a private GitHub Gist owned by the user. See §3.G for the full sync model.
 - Export / Import: a JSON download/upload in `/settings` so users can move data between browsers manually (works regardless of whether sync is enabled).
-- Lifecycle: cleared by "Clear local cache" and full logout. Never sent to any server (including the Vercel proxy).
+- Lifecycle: cleared by the settings **clear saved github data** action and by full logout. Never sent to any server (including the Vercel proxy).
 
 ### G. Cross-Device Sync (Optional, GitHub Gist)
 
@@ -184,10 +184,10 @@ The full data model, sync triggers, conflict resolution, failure / offline behav
 
 - Network / 5xx: retry with TanStack Query defaults (3 attempts, exponential backoff), then show inline error tile with retry button.
 - 401 / token invalid: clear auth, redirect to `/`.
-- 403 rate limit: banner with reset time, keep showing cached data.
-- 403 SAML / SSO required: actionable message linking to the user's org SSO authorization page.
+- 403 rate limit: non-blocking global banner with reset time; keep showing numbers that already loaded (see §10 rate-limit example).
+- 403 SAML / SSO required (org gate, **personal token still valid**): non-blocking global **`SsoRequiredBanner`** in `AppShell`, stacked with the rate-limit banner. GitHub signals this via the `x-github-sso` response header on REST `403` and on some GraphQL error payloads; the data layer classifies it as `sso-required`, broadcasts through the same event path as rate limits, and tiles may still show inline errors. The banner links to GitHub’s org SSO authorize URL when present (fallback: Authorized OAuth Apps). **Retry** clears the banner and invalidates TanStack Query only — it does **not** log the user out or wipe client-side stores; org data refetches after the user approves SSO on GitHub.
 - Empty data (new account, no commits): friendly empty state per tile, never a blank screen.
-- All error and empty-state strings are written in the voice defined in §10 — direct, blunt, never generic ("github rate-limited us. resets at 14:32." not "An error occurred.").
+- All error and empty-state strings are written in the voice defined in §10 — direct, blunt, never generic (see §10 examples).
 
 ## 4. App Sitemap (The Pages)
 
@@ -224,7 +224,7 @@ The full data model, sync triggers, conflict resolution, failure / offline behav
 - PTO Calendar: a month-view picker to mark/unmark off-days. Supports single-day toggle, range selection (e.g., Dec 23 – Jan 2), an optional short label per entry ("Vacation", "Sick", "Public Holiday"), and a list view to bulk-edit/delete. Marked days update every dependent metric live.
 - Public Holidays: a region multi-select (search + ISO 3166 codes; e.g., US, IN, GB-ENG). Off by default. Once enabled, the chosen region's holidays auto-fill as off-days across every metric and on the heatmap. A list view shows upcoming holidays for the year; each row has an "I worked that day" override that flips it back to a workday without disabling the whole feature. Voice copy in §10.
 - Sync (cross-device): off by default. A toggle starts the `gist`-scope re-auth flow described in §3.G; once enabled, shows last-sync time, a **Sync now** button, and a destructive **Delete cloud copy** action. Status messages follow §10 voice ("synced 12 seconds ago", "couldn't reach github. local data is fine.").
-- Data controls: "Clear local cache", "Logout", "Revoke GitHub authorization" (link to GitHub settings), "Export user data (JSON)", "Import user data (JSON)".
+- Data controls: clear saved GitHub data on this device, log out, revoke GitHub authorization (link to GitHub settings), export user data (JSON), import user data (JSON). Labels follow §10 (no storage-API jargon in UI).
 
 ### F. Not Found (\*)
 
@@ -232,7 +232,7 @@ The full data model, sync triggers, conflict resolution, failure / offline behav
 
 ### G. Global app header (shared `AppShell`)
 
-- **Code:** `src/components/AppShell.tsx` — `MantineAppShell` wraps all routes: fixed-height header, main with landing vs padded `Container` layout, `RateLimitBanner` placement as implemented.
+- **Code:** `src/components/AppShell.tsx` — `MantineAppShell` wraps all routes: fixed-height header, main with landing vs padded `Container` layout, global **`SsoRequiredBanner`** + **`RateLimitBanner`** above the main outlet (non-blocking alerts; see §3.H).
 - **Signed-in — at `sm` and wider (Mantine `sm` = 48em):** A centered row of pill `Button`s + `RouterNavLink` for **dashboard**, **profile** (`/u/:login`), and **settings**. The row sits in a `Group` with `visibleFrom="sm"` so it does not occupy horizontal space on narrow phones (avoids clipped labels and crowding next to the cache pill and avatar).
 - **Signed-in — below `sm`:** The pill row is hidden. **dashboard**, **profile**, and **settings** are listed in the **avatar** `Menu` instead: they render after the account identity block (`Menu.Label`), before **privacy**, with dividers separating blocks. Active route uses the same semantics as the pills (`menuNavItemStyles` + pathname checks). Whether those three items appear in the dropdown follows `useMediaQuery('(min-width: ${theme.breakpoints.sm})', …, { getInitialValueInEffect: false })` so it stays aligned with the pill row’s `visibleFrom="sm"`: at `sm+` the menu lists identity → **privacy** → **log out** only (primary routes stay in the header pills); below `sm` the same three routes are included after the identity block. Menu width is ~240px; choosing a link closes the menu via normal `Menu.Item` behavior.
 - **Signed-in — right cluster:** Cache freshness pill (green status dot + `cache · …` copy; label text uses `visibleFrom="xs"`), then the avatar `Menu` target (`Avatar` with `aria-label` derived from `viewer.login`). Pill `Button`s use `headerNavPillStyles` so light-mode `subtle` + `gray` labels resolve to Primer foreground tokens (`--gi-fg-default`).
@@ -364,6 +364,7 @@ Brutalist, pro work-life balance, anti-burnout, anti-toxic-workplace, gen-z nati
 - **No moralizing, no shame.** "you committed at 2am 4 nights this week" is fine. "you should be ashamed" or "this is bad for you" is not.
 - **No emoji clutter.** Sparing use of GitHub-native iconography (Octicons) and small textual signals; no emoji-as-decoration. Adding emoji is opt-in via design review, never default.
 - **Internet-native, not cringe.** We can be casual and direct. We don't reach for memes that will date the product in 6 months ("rizz", "gyatt", current trend slang) or speak in third-person AI voice ("as your insights companion…").
+- **Plain words, not storage engineering.** User-facing copy does not name `IndexedDB`, `localStorage`, or other low-level persistence APIs (those belong in §2 / §3 architecture and code comments). Describe outcomes in normal language — *this device*, *what already loaded*, *saved github responses*, *wipe everything here* — same blunt tone, zero DBA cosplay.
 - **Accessibility is voice too.** Every string must work for a screen reader. No copy that depends on visual layout, color, or emoji to make sense.
 
 ### Don't / Do
@@ -388,7 +389,10 @@ Brutalist, pro work-life balance, anti-burnout, anti-toxic-workplace, gen-z nati
   - Do: "we read your private repos because that's where the work actually lives. nothing leaves your browser. promise."
 - Rate-limit error:
   - Don't: "An error occurred. Please try again later."
-  - Do: "github rate-limited us. resets at 14:32. cached data below."
+  - Do: "github rate-limited us. resets at 14:32. what already loaded below stays until then."
+- Org SAML / SSO (signed in, org is blocking private data):
+  - Don't: "SAML assertion failed for OAuth token; IndexedDB is unaffected."
+  - Do: "github needs org SSO again. you're still signed in. a workplace org is holding back private data until you approve this app again on github — nothing wrong with your password." (link: approve on github; secondary: try again → query invalidation only; see §3.H.)
 - Auth expired:
   - Don't: "Your session has expired. Please log in again."
   - Do: "github logged you out. log back in to keep going."
@@ -413,7 +417,7 @@ Avoid these in any user-facing string:
 
 Every screen and string, including but not limited to:
 
-- §3.H error handling (auth expired, rate limit, SAML, network, empty data).
+- §3.H error handling (auth expired, rate limit, org SAML / SSO banner, network, empty data).
 - §4.A scope disclosure on the login page.
 - §4.E settings labels, especially around PTO ("mark as PTO", "actually rest", etc.).
 - WLB Audit tile copy ([`features/wlb-audit.md`](./features/wlb-audit.md)): every metric needs a one-liner verdict in this voice.

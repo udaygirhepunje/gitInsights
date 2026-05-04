@@ -14,7 +14,7 @@ export function SettingsPage(): JSX.Element {
       <Stack gap="xs">
         <Title order={1}>settings</Title>
         <Text c="dimmed">
-          everything below lives in your browser unless you turn on cross-device sync.
+          everything below stays on this device unless you turn on cross-device sync.
         </Text>
       </Stack>
 
