@@ -15,11 +15,14 @@ import { toIsoDateKey } from '../../../analytics/dates';
 import { BENTO_AREAS, BentoTile, TILE_HELP } from '..';
 import { StatNumber, VerdictLine } from './Stat';
 
+const SPARKLINE_H = 80;
+
 const ChartHoverWrap = styled(Box)`
   position: relative;
   min-width: 0;
   width: 100%;
-  overflow-x: hidden;
+  height: ${SPARKLINE_H}px;
+  overflow: hidden;
 ` as typeof Box;
 
 const ChartHoverLayer = styled(Box)`
@@ -142,7 +145,7 @@ export function EPTile(): JSX.Element {
         {/* </Group> */}
         <ChartHoverWrap>
           <LineChart
-            h={80}
+            h={SPARKLINE_H}
             data={sparkline}
             dataKey="date"
             series={[{ name: 'momentum', color: 'primerBlue.4' }]}
