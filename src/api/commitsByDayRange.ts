@@ -161,6 +161,44 @@ export async function ensureCommitsByDayRange(
   return mergeChunks(chunks, fromIso, toIso, coverage);
 }
 
+/**
+ * Read-only cache snapshot: loads whatever month chunks are already in IndexedDB
+ * (no network). Returns null when there's nothing cached at all so callers can
+ * distinguish "empty cache" from "zero commits".
+ */
+export async function loadCachedCommitsByDayRange(
+  login: string,
+  from: Date | string,
+  to: Date | string,
+): Promise<CommitsByDay | null> {
+  const fromDate = new Date(typeof from === 'string' ? from : from);
+  const toDate = new Date(typeof to === 'string' ? to : to);
+  fromDate.setHours(0, 0, 0, 0);
+  toDate.setHours(0, 0, 0, 0);
+
+  const fromIso = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, '0')}-${String(fromDate.getDate()).padStart(2, '0')}`;
+  const toIso = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, '0')}-${String(toDate.getDate()).padStart(2, '0')}`;
+
+  const monthKeys = monthsOverlappingRangeDescending(fromDate, toDate);
+  const chunks: MonthChunk[] = [];
+
+  for (const monthKey of monthKeys) {
+    const cached = await getChunk(login, monthKey);
+    if (cached) chunks.push(cached);
+  }
+
+  if (chunks.length === 0) return null;
+
+  const coverage: CommitsCoverage = {
+    totalMonths: monthKeys.length,
+    loadedMonths: chunks.length,
+    loadedMonthKeys: chunks.map((c) => c.month).sort(),
+    backfilling: chunks.length < monthKeys.length,
+  };
+
+  return mergeChunks(chunks, fromIso, toIso, coverage);
+}
+
 export type PrefetchMonthResult = {
   chunk: MonthChunk | null;
   /** True when this call hit GitHub (new month or stale unsealed refresh). */

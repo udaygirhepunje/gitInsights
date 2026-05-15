@@ -32,10 +32,11 @@ export function ConsistencyTile(): JSX.Element {
     setDayModalDateKey(dateKey);
   }, []);
   const window = useMemo(() => rollingYearWindow(), []);
-  const { data, isLoading, isError, refetch } = useViewerCommitsByDay({
-    login: viewer?.login,
-    range: window,
-  });
+  const { data, isLoading, isError, isPlaceholderData, isFetching, refetch } =
+    useViewerCommitsByDay({
+      login: viewer?.login,
+      range: window,
+    });
 
   const rows = useMemo(
     () => (data ? commitsToHeatmapRows(data.byDate, window, data.coverage) : []),
@@ -75,7 +76,11 @@ export function ConsistencyTile(): JSX.Element {
           <Group justify="space-between">
             <Text size="xs" c="dimmed" style={metricMonoStyle}>
               {totalCommits.toLocaleString()} commits, last 365 days.
-              {data?.coverage?.backfilling ? ' loading older months…' : ''}
+              {data?.coverage?.backfilling
+                ? ' loading older months…'
+                : isPlaceholderData && isFetching
+                  ? ' refreshing…'
+                  : ''}
             </Text>
             <HeatmapLegend />
           </Group>

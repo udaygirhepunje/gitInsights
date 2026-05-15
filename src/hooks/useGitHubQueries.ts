@@ -5,8 +5,10 @@ import {
   type UseInfiniteQueryResult,
   type UseQueryResult,
 } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 
-import { ensureCommitsByDayRange } from '../api/commitsByDayRange';
+import { ensureCommitsByDayRange, loadCachedCommitsByDayRange } from '../api/commitsByDayRange';
+import type { CommitsByDay } from '../api/commitsByDayRange';
 import {
   COMMIT_HISTORY_DEFAULT_CAP,
   COMMIT_PAGE_SIZE,
@@ -17,7 +19,6 @@ import {
   makeViewerProfileFetcher,
   makeViewerRepoLanguagesFetcher,
   type CommitHistoryPage,
-  type CommitsByDay,
   type GitHubClients,
 } from '../api/github';
 import { queryKeys, STALE_TIMES } from '../api/queryClient';
@@ -67,6 +68,12 @@ export function useViewerContributions(
 }
 
 // Pure non-merge commits per day — month-chunk cache + search queue (spec §3.D.1).
+//
+// Stale-while-revalidate: on mount we read whatever month chunks are already in
+// IndexedDB and feed them to TanStack Query as `placeholderData`. The heatmap
+// renders immediately with the cached snapshot while the real fetcher runs in
+// the background. Once the network data arrives it silently replaces the
+// placeholder — no loading spinner for the user.
 export function useViewerCommitsByDay(args: {
   login: string | null | undefined;
   range: ContributionsRange;
@@ -76,6 +83,21 @@ export function useViewerCommitsByDay(args: {
   const key = rangeKey(args.range);
   const login = args.login ?? '';
   const qk = queryKeys.viewerCommitsByDay(login, key.from, key.to);
+
+  const [cachedSnapshot, setCachedSnapshot] = useState<CommitsByDay | undefined>(undefined);
+
+  const rangeFrom = args.range.from;
+  const rangeTo = args.range.to;
+  useEffect(() => {
+    if (!login) return;
+    let cancelled = false;
+    void loadCachedCommitsByDayRange(login, rangeFrom, rangeTo).then((snapshot) => {
+      if (cancelled || !snapshot) return;
+      setCachedSnapshot(snapshot);
+    });
+    return () => { cancelled = true; };
+  }, [login, rangeFrom, rangeTo]);
+
   return useQuery({
     queryKey: qk,
     queryFn: ({ signal }) =>
@@ -89,6 +111,7 @@ export function useViewerCommitsByDay(args: {
       }),
     enabled: clients != null && login.length > 0,
     staleTime: STALE_TIMES.commitsByDay,
+    placeholderData: cachedSnapshot,
   });
 }
 
