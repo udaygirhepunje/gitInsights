@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useAuthStore } from '../store/auth';
+import { consumeSyncIntent, enableAfterReauth } from '../sync';
 
 // /callback handler. Lifecycle (spec §3.A, §4.B, Phase 2 task list):
 //
@@ -36,6 +37,8 @@ const PROXY_ERROR_COPY: Record<string, string> = {
   upstream_invalid_json: 'github responded with something that wasn’t json. try again.',
 };
 
+const SYNC_INTENT_KEY = 'gi.sync.pending-enable';
+
 export function CallbackPage(): JSX.Element {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -45,6 +48,11 @@ export function CallbackPage(): JSX.Element {
   // single-use OAuth code (the second exchange would always fail with
   // `bad_verification_code`).
   const exchangeStartedRef = useRef(false);
+  // Snapshot the sync-intent flag synchronously on first mount, before
+  // SyncBoot or any async work can consume/remove it.
+  const syncIntentRef = useRef(
+    typeof window !== 'undefined' ? window.localStorage.getItem(SYNC_INTENT_KEY) : null,
+  );
 
   const code = searchParams.get('code');
   const oauthError = searchParams.get('error');
@@ -122,14 +130,19 @@ export function CallbackPage(): JSX.Element {
         }
 
         await setSession(payload.access_token);
-        // If the user came here via the sync opt-in re-auth flow, land back
-        // on /settings so they see the activation result inline. SyncBoot
-        // consumes the intent flag and runs the first push.
-        const reauthIntent =
-          typeof window !== 'undefined'
-            ? window.localStorage.getItem('gi.sync.pending-enable')
-            : null;
-        navigate(reauthIntent ? '/settings' : '/dashboard', { replace: true });
+
+        if (syncIntentRef.current) {
+          // The user came here via the sync opt-in re-auth flow. The new
+          // token (with gist scope) is now active, so we consume the intent
+          // and enable sync ourselves — SyncBoot can't reliably do it
+          // because its effect dependencies (authStatus / viewerLogin) may
+          // not change when the same user re-authenticates with a new token.
+          consumeSyncIntent();
+          void enableAfterReauth();
+          navigate('/settings', { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
       } catch {
         setState({ kind: 'error', reason: 'network_error' });
       }

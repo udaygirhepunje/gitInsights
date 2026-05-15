@@ -280,13 +280,25 @@ export function SyncBoot(): null {
   useEffect(() => {
     if (authStatus !== 'authenticated' || !viewerLogin) return;
 
+    // While /callback is exchanging the OAuth code for a fresh token, the
+    // app boots with the *old* token (still in localStorage from the prior
+    // session).  If we consumed the sync-intent now we'd check scopes
+    // against that old token (which lacks `gist`), fail, and clear the
+    // intent before the new token arrives.  Skip intent handling entirely
+    // while on the callback route — the Callback page will call
+    // `setSession` with the new token, which re-fires this effect on a
+    // path that is no longer `/callback`.
+    const onCallbackRoute =
+      typeof window !== 'undefined' && window.location.pathname.endsWith('/callback');
+
     hydrate(viewerLogin);
 
-    // Consume any pending re-auth intent now that the new token is in place.
-    const intent = consumeSyncIntent();
-    if (intent === viewerLogin) {
-      void enableAfterReauth();
-      return;
+    if (!onCallbackRoute) {
+      const intent = consumeSyncIntent();
+      if (intent === viewerLogin) {
+        void enableAfterReauth();
+        return;
+      }
     }
 
     const token = useAuthStore.getState().token;
@@ -336,7 +348,7 @@ export function SyncBoot(): null {
   return null;
 }
 
-async function enableAfterReauth(): Promise<void> {
+export async function enableAfterReauth(): Promise<void> {
   const auth = useAuthStore.getState();
   const token = auth.token;
   const login = auth.viewer?.login;

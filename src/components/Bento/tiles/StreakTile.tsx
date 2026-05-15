@@ -10,7 +10,7 @@ import { useHoverHighlight } from '../../../store/hoverHighlight';
 import { rollingYearWindow } from '../../ConsistencyMap/contributions';
 import { useStreakMode } from '../../../userData';
 import { useOffDayContext } from '../../../userData/useOffDayContext';
-import { currentStreakInfo, longestStreakInfo, streakDots, type StreakDot } from '../../../analytics/streaks';
+import { currentStreakInfo, lastStreakInfo, longestStreakInfo, streakDots, type StreakDot } from '../../../analytics/streaks';
 import { formatDisplayDayMonthYear } from '../../../analytics/dates';
 import { BENTO_AREAS, BentoTile, TILE_HELP } from '..';
 import { StatNumber, StatRow, VerdictLine } from './Stat';
@@ -119,6 +119,11 @@ export function StreakTile(): JSX.Element {
     [byDate, ctx, data, mode],
   );
 
+  const lastStreak = useMemo(
+    () => (data ? lastStreakInfo({ byDate, ctx, mode }) : { days: 0 }),
+    [byDate, ctx, data, mode],
+  );
+
   const dots = useMemo(
     () => (data ? streakDots({ byDate, ctx, mode, maxDots: 21 }) : []),
     [byDate, ctx, data, mode],
@@ -164,6 +169,7 @@ export function StreakTile(): JSX.Element {
         </Group>
         {dots.length > 0 && <StreakBar dots={dots} />}
 
+        <StatRow label="last" value={String(lastStreak.days)} />
         <StatRow label="longest" value={longestDaysValue} />
         <StatRow label="last broken" value={lastBrokenValue} />
         {data?.coverage?.backfilling ? (

@@ -1,7 +1,8 @@
 export { BackfillBoot } from './BackfillBoot';
-export { SyncBoot, useSyncStore } from './useSync';
+export { SyncBoot, useSyncStore, enableAfterReauth } from './useSync';
 export type { SyncStatus } from './useSync';
 export type { SyncEvent } from './syncLog';
+export { consumeSyncIntent } from './syncConfig';
 export {
   GIST_DESCRIPTION,
   GIST_FILENAME,

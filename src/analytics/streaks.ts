@@ -52,6 +52,13 @@ export function currentStreak(args: StreakArgs): number {
   return currentStreakInfo(args).days;
 }
 
+export function lastStreakInfo(args: StreakArgs): { days: number } {
+  const cur = currentStreakInfo(args);
+  if (!cur.lastBrokenOn) return { days: 0 };
+  const prev: StreakArgs = { ...args, today: addDaysIso(cur.lastBrokenOn, -1) };
+  return { days: currentStreakInfo(prev).days };
+}
+
 export function longestStreak(args: StreakArgs): number {
   return longestStreakInfo(args).days;
 }
