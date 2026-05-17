@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "echo 'gitInsights on Vercel ships api/ only — the SPA itself deploys to GitHub Pages.'",
+  "buildCommand": "echo 'gitInsights on Vercel ships api/ only — the SPA itself deploys to GitHub Pages.' && mkdir -p public",
   "outputDirectory": "public",
   "functions": {
     "api/authenticate.ts": {
