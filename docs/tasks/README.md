@@ -24,8 +24,7 @@ docs/tasks/
 
 | # | File | Goal |
 |---|---|---|
-| 9 | [`backlog/phase-09-global-timeframe-filter.md`](./backlog/phase-09-global-timeframe-filter.md) | Dashboard-wide timeframe picker (presets / month / quarter / custom, 365d cap) + Weekly Coding Days bucketed histogram. Implements [`../features/global-timeframe.md`](../features/global-timeframe.md). |
-| 11 | [`backlog/phase-11-incremental-commit-cache.md`](./backlog/phase-11-incremental-commit-cache.md) | Month-chunked commit cache, progressive background backfill, search-request throttle, `Retry-After` handling. Eliminates secondary rate-limit `403`s on first/cold loads. Implements `spec.md §3.D.1`. |
+| _(empty)_ | | |
 
 ### Archive (shipped)
 
@@ -41,7 +40,9 @@ docs/tasks/
 | 6 | [`archive/phase-06-deployment.md`](./archive/phase-06-deployment.md) | GitHub Pages SPA hack + Vercel deploy |
 | 7 | [`archive/phase-07-cicd-quality.md`](./archive/phase-07-cicd-quality.md) | GitHub Actions CI, build, deploy |
 | 8 | [`archive/phase-08-polish-and-launch.md`](./archive/phase-08-polish-and-launch.md) | 404, OG image, README, privacy page |
+| 9 | [`archive/phase-09-global-timeframe-filter.md`](./archive/phase-09-global-timeframe-filter.md) | Dashboard-wide timeframe picker (presets / month / quarter / custom, 365d cap) + Weekly Coding Days bucketed histogram |
 | 10 | [`archive/phase-10-cross-tile-heatmap-highlights.md`](./archive/phase-10-cross-tile-heatmap-highlights.md) | Cross-tile heatmap hover highlights + Weekly Coding Days semantics cleanup |
+| 11 | [`archive/phase-11-incremental-commit-cache.md`](./archive/phase-11-incremental-commit-cache.md) | Month-chunked commit cache, progressive background backfill, search-request throttle, `Retry-After` handling |
 | 12 | [`archive/phase-12-umami-analytics.md`](./archive/phase-12-umami-analytics.md) | Cookie-free Umami analytics: page views, user identification, feature usage events |
 
 ## Screen → Phase matrix
