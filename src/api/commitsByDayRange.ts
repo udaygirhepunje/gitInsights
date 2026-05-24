@@ -133,32 +133,52 @@ export async function ensureCommitsByDayRange(
   const toIso = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, '0')}-${String(toDate.getDate()).padStart(2, '0')}`;
 
   const monthKeys = monthsOverlappingRangeDescending(fromDate, toDate);
-  const chunks: MonthChunk[] = [];
+
+  // Pre-populate with IDB-cached chunks so every onPartial call includes the
+  // full year of data (stale cached + fresh network). Without this, the first
+  // onPartial after a single month resolves would replace the seeded snapshot
+  // with only that month's data, causing all other months to flash as pending.
+  const chunkByMonth = new Map<string, MonthChunk>();
+  for (const mk of monthKeys) {
+    const cached = await getChunk(login, mk);
+    if (cached) chunkByMonth.set(mk, cached);
+  }
+
+  const refreshedMonths = new Set<string>();
 
   for (const monthKey of monthKeys) {
     if (opts.signal?.aborted) {
       throw new DOMException('Aborted', 'AbortError');
     }
     const chunk = await loadOrFetchMonth(clients, login, monthKey, opts.priority, staleMs);
-    chunks.push(chunk);
+    chunkByMonth.set(monthKey, chunk);
+    refreshedMonths.add(monthKey);
 
+    const allChunks = monthKeys
+      .filter((mk) => chunkByMonth.has(mk))
+      .map((mk) => chunkByMonth.get(mk)!);
+    const loadedMonthKeys = [...chunkByMonth.keys()].sort();
     const coverage: CommitsCoverage = {
       totalMonths: monthKeys.length,
-      loadedMonths: chunks.length,
-      loadedMonthKeys: chunks.map((c) => c.month).sort(),
-      backfilling: chunks.length < monthKeys.length,
+      loadedMonths: loadedMonthKeys.length,
+      loadedMonthKeys,
+      backfilling: refreshedMonths.size < monthKeys.length,
     };
-    opts.onPartial?.(mergeChunks(chunks, fromIso, toIso, coverage));
+    opts.onPartial?.(mergeChunks(allChunks, fromIso, toIso, coverage));
   }
 
+  const allChunks = monthKeys
+    .filter((mk) => chunkByMonth.has(mk))
+    .map((mk) => chunkByMonth.get(mk)!);
+  const loadedMonthKeys = [...chunkByMonth.keys()].sort();
   const coverage: CommitsCoverage = {
     totalMonths: monthKeys.length,
-    loadedMonths: chunks.length,
-    loadedMonthKeys: chunks.map((c) => c.month).sort(),
+    loadedMonths: loadedMonthKeys.length,
+    loadedMonthKeys,
     backfilling: false,
   };
 
-  return mergeChunks(chunks, fromIso, toIso, coverage);
+  return mergeChunks(allChunks, fromIso, toIso, coverage);
 }
 
 /**
