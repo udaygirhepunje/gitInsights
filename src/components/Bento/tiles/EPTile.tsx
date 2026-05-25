@@ -160,6 +160,7 @@ export function EPTile(): JSX.Element {
             withXAxis={false}
             withYAxis={false}
             gridAxis="none"
+            style={{ padding: 1 }}
           />
           {sparkline.length > 0 ? (
             <ChartHoverLayer onMouseLeave={clear}>
