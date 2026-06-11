@@ -9,6 +9,8 @@ Each file in this folder is the **deep specification for one product feature**. 
 | [`commit-momentum.md`](./commit-momentum.md) | Recency-weighted commit score (Bento `EP` tile) and the future Diff Delta extension |
 | [`consistency-streaks.md`](./consistency-streaks.md) | 53-week heatmap (Consistency Map) and the three streak modes |
 | [`weekly-coding-days.md`](./weekly-coding-days.md) | Sunday-Saturday coding days tile and its timeframe-aware bucketed histogram |
+| [`average-commits-per-day.md`](./average-commits-per-day.md) | Authored non-merge commits per effective working day over the global timeframe + compact line-chart trend |
+| [`merged-prs-authored.md`](./merged-prs-authored.md) | Authored-and-merged PR count over the global timeframe (co-authored excluded in v1) |
 | [`wlb-audit.md`](./wlb-audit.md) | Late-night, non-workday, PTO-honored, hour histogram, longest break |
 | [`tech-stack.md`](./tech-stack.md) | Top languages by weighted bytes |
 | [`workweek.md`](./workweek.md) | User-authored "working days" set; drives every "non-workday" reference |

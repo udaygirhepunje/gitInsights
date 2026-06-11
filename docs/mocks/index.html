@@ -849,6 +849,36 @@
         opacity: 1;
       }
 
+      .acd-line {
+        height: 40px;
+        margin-top: 10px;
+      }
+
+      .acd-line svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .acd-line .acd-baseline {
+        stroke: var(--border-muted);
+        stroke-width: 1;
+      }
+
+      .acd-line .acd-trend {
+        fill: none;
+        stroke: var(--success-emphasis);
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        opacity: 0.95;
+      }
+
+      .acd-line .acd-point {
+        fill: var(--success-emphasis);
+        opacity: 0.85;
+      }
+
       /* WLB hour histogram */
       .wlb-hist {
         display: grid;
@@ -2435,6 +2465,62 @@
                 </div>
               </div>
 
+              <!-- Merged PRs (authored) -->
+              <div class="tile span-6">
+                <div class="tile-head">
+                  <div class="tile-title">
+                    <span>merged prs (authored) · timeframe</span>
+                  </div>
+                  <span class="pill">authored + merged only</span>
+                </div>
+                <div class="ep-num">38</div>
+                <div style="font-size: 12px; color: var(--fg-muted); margin-top: 8px">
+                  pull requests you authored and got merged in the resolved window.
+                </div>
+                <div class="ep-foot" style="margin-top: 14px">
+                  <span class="mono">window · last 30 days</span>
+                  <span class="mono">public + accessible private</span>
+                </div>
+              </div>
+
+              <!-- Average commits/day (line chart trend) -->
+              <div class="tile span-6">
+                <div class="tile-head">
+                  <div class="tile-title">
+                    <span>average commits / day</span>
+                  </div>
+                  <span class="pill">effective working days</span>
+                </div>
+                <div class="wcd-row">
+                  <div class="wcd-num">3.4</div>
+                  <div class="wcd-den">commits/day</div>
+                </div>
+                <div style="font-size: 12px; color: var(--fg-muted); margin-top: 8px">
+                  68 authored non-merge commits over 20 effective working days.
+                </div>
+                <div class="acd-line" aria-label="average commits per day trend line">
+                  <svg viewBox="0 0 228 40" role="img" aria-hidden="true">
+                    <line class="acd-baseline" x1="0" y1="34" x2="228" y2="34"></line>
+                    <polyline
+                      class="acd-trend"
+                      points="4,24 24,15 44,21 64,8 84,12 104,17 124,5 144,14 164,20 184,9 204,13 224,18"
+                    ></polyline>
+                    <circle class="acd-point" cx="4" cy="24" r="1.8"></circle>
+                    <circle class="acd-point" cx="24" cy="15" r="1.8"></circle>
+                    <circle class="acd-point" cx="44" cy="21" r="1.8"></circle>
+                    <circle class="acd-point" cx="64" cy="8" r="1.8"></circle>
+                    <circle class="acd-point" cx="84" cy="12" r="1.8"></circle>
+                    <circle class="acd-point" cx="104" cy="17" r="1.8"></circle>
+                    <circle class="acd-point" cx="124" cy="5" r="1.8"></circle>
+                    <circle class="acd-point" cx="144" cy="14" r="1.8"></circle>
+                    <circle class="acd-point" cx="164" cy="20" r="1.8"></circle>
+                    <circle class="acd-point" cx="184" cy="9" r="1.8"></circle>
+                    <circle class="acd-point" cx="204" cy="13" r="1.8"></circle>
+                    <circle class="acd-point" cx="224" cy="18" r="1.8"></circle>
+                  </svg>
+                </div>
+              </div>
+
               <!-- WLB -->
               <div class="tile span-7">
                 <div class="tile-head">
@@ -2694,6 +2780,56 @@
                     <div class="swatch" style="background: var(--hm-4)"></div>
                   </div>
                   <span>more</span>
+                </div>
+              </div>
+
+              <div class="tile span-6">
+                <div class="tile-head">
+                  <div class="tile-title"><span>merged prs (authored) · timeframe</span></div>
+                  <span class="pill">authored + merged only</span>
+                </div>
+                <div class="ep-num">38</div>
+                <div style="font-size: 12px; color: var(--fg-muted); margin-top: 8px">
+                  pull requests you authored and got merged in the resolved window.
+                </div>
+                <div class="ep-foot" style="margin-top: 14px">
+                  <span class="mono">window · last 30 days</span>
+                  <span class="mono">public + accessible private</span>
+                </div>
+              </div>
+
+              <div class="tile span-6">
+                <div class="tile-head">
+                  <div class="tile-title"><span>average commits / day</span></div>
+                  <span class="pill">effective working days</span>
+                </div>
+                <div class="wcd-row">
+                  <div class="wcd-num">3.4</div>
+                  <div class="wcd-den">commits/day</div>
+                </div>
+                <div style="font-size: 12px; color: var(--fg-muted); margin-top: 8px">
+                  68 authored non-merge commits over 20 effective working days.
+                </div>
+                <div class="acd-line" aria-label="average commits per day trend line">
+                  <svg viewBox="0 0 228 40" role="img" aria-hidden="true">
+                    <line class="acd-baseline" x1="0" y1="34" x2="228" y2="34"></line>
+                    <polyline
+                      class="acd-trend"
+                      points="4,24 24,15 44,21 64,8 84,12 104,17 124,5 144,14 164,20 184,9 204,13 224,18"
+                    ></polyline>
+                    <circle class="acd-point" cx="4" cy="24" r="1.8"></circle>
+                    <circle class="acd-point" cx="24" cy="15" r="1.8"></circle>
+                    <circle class="acd-point" cx="44" cy="21" r="1.8"></circle>
+                    <circle class="acd-point" cx="64" cy="8" r="1.8"></circle>
+                    <circle class="acd-point" cx="84" cy="12" r="1.8"></circle>
+                    <circle class="acd-point" cx="104" cy="17" r="1.8"></circle>
+                    <circle class="acd-point" cx="124" cy="5" r="1.8"></circle>
+                    <circle class="acd-point" cx="144" cy="14" r="1.8"></circle>
+                    <circle class="acd-point" cx="164" cy="20" r="1.8"></circle>
+                    <circle class="acd-point" cx="184" cy="9" r="1.8"></circle>
+                    <circle class="acd-point" cx="204" cy="13" r="1.8"></circle>
+                    <circle class="acd-point" cx="224" cy="18" r="1.8"></circle>
+                  </svg>
                 </div>
               </div>
             </div>

@@ -155,6 +155,15 @@ The `GET /search/commits` endpoint sits in GitHub's `search` rate bucket (30 req
 
 - `/settings → Data controls` gains a **"Refresh all commit data"** action that clears all month-chunks and re-runs the progressive backfill. Copy: "re-downloads your commit history from github. takes a few minutes. only do this if something looks wrong."
 
+#### D.2 Incremental PR merge cache (new PR widget)
+
+The merged-PR metric must follow the same incremental-local pattern as commits so counts stay strict without burning rate budget:
+
+- Store authored-and-merged PR events in calendar-month chunks in IndexedDB (`gi.prs.<login>.<YYYY-MM>`).
+- Reuse the same sealing rule as commit chunks: months older than 30 days are treated as historical and not auto-refetched.
+- For any selected timeframe, assemble results by merging overlapping month chunks; if a chunk is missing, fetch only that chunk and merge into local storage.
+- For the current month, fetch only missing/new merged PRs since the latest cached event and dedupe by PR id before writing back.
+
 ### E. Heavy Compute (Web Workers)
 
 Commit Momentum and WLB rollups can iterate over tens of thousands of commits. Run them off the main thread:
@@ -281,6 +290,8 @@ These three concepts are the substrate for every time-based metric. Every metric
 - **Commit Momentum** (Bento `EP`) — recency-weighted sum of pure non-merge commits in the window. `RecencyWeight` decays linearly from 1.0 (now) to 0.25 (365 days ago). Includes the future Diff Delta extension (per-commit diff-size weighting) as a forward-compatible pure function. Full spec: [`features/commit-momentum.md`](./features/commit-momentum.md).
 - **Consistency Map & Streak Modes** — 53-week × 7-day heatmap of pure non-merge commits (custom CSS-grid component). Three streak modes: `strict`, `skip-non-workdays` (default), `workdays-only`. The heatmap and its streak counters are **exempt from the Global Timeframe** and stay pinned to the trailing 53 weeks. Full spec: [`features/consistency-streaks.md`](./features/consistency-streaks.md).
 - **Weekly Coding Days** — per Sunday-Saturday week `activeDays / effectiveWorkingDays` ratio with a **timeframe-aware bucketed histogram** (per-week → bi-weekly → per-month) so the bar count stays in a readable 4–14 range. Full spec: [`features/weekly-coding-days.md`](./features/weekly-coding-days.md).
+- **Merged PRs (Authored)** — count only pull requests authored by the viewer and merged inside the resolved Global Timeframe window. Co-authored PR attribution is explicitly out of scope for v1. Coverage includes public + private repos accessible with current OAuth scopes (`repo`, `read:org`); org SSO gates can still hide private-org data until the user re-authorizes access (see §3.H).
+- **Average Commits / Day** — `totalAuthoredNonMergeCommits / effectiveWorkingDays` over the resolved Global Timeframe window. The denominator must use the same `effectiveWorkingDays` behavior as Weekly Coding Days (workweek + PTO + public holidays + overrides); if the denominator is zero, show an off-day/rest state rather than `0` as a misleading productivity signal.
 - **WLB Audit** — `LateNightRatio`, `NonWorkdayRatio`, `HourHistogram`, `LongestStreakDays`, `LongestBreakDays`, plus PTO-aware metrics (`PTODaysTaken`, `PTOHonoredRatio`, `PTOViolationCount`). Every metric ships with a one-liner verdict in §10 voice. Full spec: [`features/wlb-audit.md`](./features/wlb-audit.md).
 - **Tech Stack Inference** — top languages by weighted bytes across owned + contributed repos within the Global Timeframe. Full spec: [`features/tech-stack.md`](./features/tech-stack.md).
 
@@ -297,6 +308,7 @@ Primary GraphQL queries (names are illustrative):
 REST endpoints via `@octokit/rest`:
 
 - `GET /search/commits` with `q=author:{login} author-date:{from}..{to} merge:false` — **the Consistency Map data source.** Returns pure non-merge commits authored by the viewer in the window, public + private. Adaptive pagination: try the whole window in one query, recursively bisect the date range when `total_count` exceeds GitHub's 1000-result cap. Aggregated client-side into `Record<isoDate, count>`. Note GitHub's contribution-graph caveat applies: only commits whose author email is one of the viewer's verified emails are attributed.
+- `GET /search/issues` with `q=type:pr author:{login} is:merged merged:{from}..{to}` — merged PR metric data source. Counts only authored-and-merged PRs in the window (co-authored PR support is intentionally excluded in v1). Uses the month-chunk incremental cache model from §3.D.2 to avoid repeated wide-window fetches.
 - `GET /user` — primary email if not exposed via GraphQL.
 - `GET /repos/{owner}/{repo}/commits/{sha}` — file-level diff stats when GraphQL omits them.
 
@@ -427,6 +439,15 @@ Every screen and string, including but not limited to:
 When in doubt, ask: *would the developer's most direct friend say this, or would their manager's HR portal?* If it's the second, rewrite.
 
 ## 11. Open Questions / Decisions Log
+
+### Finalized decisions (June 2026)
+
+- [x] PR metric counts only PRs authored by the user and merged in the selected timeframe.
+- [x] Co-authored PR support is explicitly skipped for now (v1 non-goal).
+- [x] Both new widgets (Merged PRs and Average Commits / Day) use the same Global Timeframe as existing timeframe-aware widgets.
+- [x] Average Commits / Day denominator aligns with Weekly Coding Days behavior (`effectiveWorkingDays`).
+- [x] Visibility scope for both new widgets includes public + private repos accessible with current scopes (`repo`, `read:org`), with org-SSO caveats handled via existing auth/error flows.
+- [x] Merged PR counting uses an incremental cache strategy like commits: fetch only missing/new data and merge with stored month chunks.
 
 - [ ] Public profile model (`/u/:username`) — visitor's token vs published JSON snapshot. _Owner decision pending._
 - [ ] Migration path from OAuth App to GitHub App (better scoping, finer-grained permissions, refresh tokens).

@@ -16,6 +16,8 @@ infinite canvas, with frame labels and route annotations.
    - Weekly Coding Days with PTO-aware denominator.
    - Consistency Map (53-week heatmap) with PTO, public holiday, and
      PTO-violation rendering.
+   - Merged PRs (Authored) — authored + merged only in the selected timeframe.
+   - Average Commits / Day — authored non-merge commits per effective working day, with a compact line-chart trend.
    - WLB Audit (24-hr histogram + PTO-honored / violation stats + verdict).
    - Tech Stack (top languages by bytes).
    - Upcoming PTO mini-month.

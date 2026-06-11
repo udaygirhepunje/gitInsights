@@ -24,7 +24,7 @@ docs/tasks/
 
 | # | File | Goal |
 |---|---|---|
-| _(empty)_ | | |
+| — | — | No active backlog tasks right now |
 
 ### Archive (shipped)
 
@@ -44,6 +44,8 @@ docs/tasks/
 | 10 | [`archive/phase-10-cross-tile-heatmap-highlights.md`](./archive/phase-10-cross-tile-heatmap-highlights.md) | Cross-tile heatmap hover highlights + Weekly Coding Days semantics cleanup |
 | 11 | [`archive/phase-11-incremental-commit-cache.md`](./archive/phase-11-incremental-commit-cache.md) | Month-chunked commit cache, progressive background backfill, search-request throttle, `Retry-After` handling |
 | 12 | [`archive/phase-12-umami-analytics.md`](./archive/phase-12-umami-analytics.md) | Cookie-free Umami analytics: page views, user identification, feature usage events |
+| 13 | [`archive/phase-13-merged-prs-widget.md`](./archive/phase-13-merged-prs-widget.md) | Merged PRs widget (authored + merged in global timeframe, incremental cache) |
+| 14 | [`archive/phase-14-average-commits-per-day-widget.md`](./archive/phase-14-average-commits-per-day-widget.md) | Average commits/day widget with compact line trend, daily points for last-week preset, weekly points otherwise |
 
 ## Screen → Phase matrix
 
