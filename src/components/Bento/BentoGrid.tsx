@@ -5,7 +5,8 @@ import styled from 'styled-components';
 // Spec §4.C dashboard bento. 12-col CSS Grid:
 //   row 1 — EP · Streak · WeeklyCodingDays
 //   row 2 — Consistency (full width)
-//   row 3 — WLB · TechStack
+//   row 3 — MergedPrsAuthored · AverageCommitsPerDay
+//   row 4 — WLB · TechStack
 // Stacks to a single column on mobile.
 
 export const BENTO_AREAS = {
@@ -13,6 +14,8 @@ export const BENTO_AREAS = {
   Streak: 'Streak',
   WeeklyCodingDays: 'WeeklyCodingDays',
   Consistency: 'Consistency',
+  MergedPrsAuthored: 'MergedPrsAuthored',
+  AverageCommitsPerDay: 'AverageCommitsPerDay',
   WLB: 'WLB',
   TechStack: 'TechStack',
 } as const;
@@ -29,6 +32,8 @@ const Grid = styled(Box)`
     'Streak'
     'WeeklyCodingDays'
     'Consistency'
+    'MergedPrsAuthored'
+    'AverageCommitsPerDay'
     'WLB'
     'TechStack';
 
@@ -38,6 +43,7 @@ const Grid = styled(Box)`
       'EP EP EP EP EP EP Streak Streak Streak Streak Streak Streak'
       'WeeklyCodingDays WeeklyCodingDays WeeklyCodingDays WeeklyCodingDays WeeklyCodingDays WeeklyCodingDays WeeklyCodingDays WeeklyCodingDays WeeklyCodingDays WeeklyCodingDays WeeklyCodingDays WeeklyCodingDays'
       'Consistency Consistency Consistency Consistency Consistency Consistency Consistency Consistency Consistency Consistency Consistency Consistency'
+      'MergedPrsAuthored MergedPrsAuthored MergedPrsAuthored MergedPrsAuthored MergedPrsAuthored MergedPrsAuthored AverageCommitsPerDay AverageCommitsPerDay AverageCommitsPerDay AverageCommitsPerDay AverageCommitsPerDay AverageCommitsPerDay'
       'WLB WLB WLB WLB WLB WLB WLB WLB WLB WLB WLB WLB'
       'TechStack TechStack TechStack TechStack TechStack TechStack TechStack TechStack TechStack TechStack TechStack TechStack';
   }
@@ -47,6 +53,7 @@ const Grid = styled(Box)`
     grid-template-areas:
       'EP EP EP EP Streak Streak Streak Streak WeeklyCodingDays WeeklyCodingDays WeeklyCodingDays WeeklyCodingDays'
       'Consistency Consistency Consistency Consistency Consistency Consistency Consistency Consistency Consistency Consistency Consistency Consistency'
+      'MergedPrsAuthored MergedPrsAuthored MergedPrsAuthored MergedPrsAuthored MergedPrsAuthored MergedPrsAuthored AverageCommitsPerDay AverageCommitsPerDay AverageCommitsPerDay AverageCommitsPerDay AverageCommitsPerDay AverageCommitsPerDay'
       'WLB WLB WLB WLB WLB WLB WLB TechStack TechStack TechStack TechStack TechStack';
   }
 ` as typeof Box;

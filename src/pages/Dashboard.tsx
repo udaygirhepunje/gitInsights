@@ -3,7 +3,9 @@ import { useEffect } from 'react';
 
 import { BentoGrid, BentoHeader } from '../components/Bento';
 import {
+  AverageCommitsPerDayTile,
   EPTile,
+  MergedPrsAuthoredTile,
   StreakTile,
   TechStackTile,
   WeeklyCodingDaysTile,
@@ -23,6 +25,8 @@ export function DashboardPage(): JSX.Element {
         <StreakTile />
         <WeeklyCodingDaysTile />
         <ConsistencyTile />
+        <MergedPrsAuthoredTile />
+        <AverageCommitsPerDayTile />
         <WLBAuditTile />
         <TechStackTile />
       </BentoGrid>

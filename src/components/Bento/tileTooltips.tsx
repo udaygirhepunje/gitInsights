@@ -59,6 +59,30 @@ ageDays = whole days from commit time to now`}
     />
   ),
 
+  averageCommitsPerDay: (
+    <HelpBody
+      bullets={[
+        'authored non-merge commits divided by Effective Working Days in the selected window',
+        'commits on off-days still count in the numerator; off-days only affect the denominator',
+        'if Effective Working Days is 0, this reads as a rest window instead of a fake zero',
+      ]}
+      formula={`AverageCommitsPerDay = totalAuthoredNonMergeCommits / effectiveWorkingDays`}
+    />
+  ),
+
+  mergedPrsAuthored: (
+    <HelpBody
+      bullets={[
+        'counts only pull requests you authored and that were merged in the selected window',
+        'co-authored attribution is intentionally excluded in v1',
+        'includes public + accessible private repos with your current github scopes',
+      ]}
+      formula={`MergedPRsAuthored(from,to) = count(PR where
+author.login = viewer.login
+AND mergedAt ∈ [from,to])`}
+    />
+  ),
+
   // Self-evident from the grid itself — color depth = activity. No formula.
   consistencyMap: (
     <HelpBody
