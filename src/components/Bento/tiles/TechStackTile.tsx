@@ -243,8 +243,7 @@ export function TechStackTile(): JSX.Element {
   );
 
   let state: 'loading' | 'empty' | 'error' | 'loaded' = 'loading';
-  if (data && slices.length === 0) state = 'empty';
-  else if (data) state = 'loaded';
+  if (data) state = 'loaded';
   else if (isError) state = 'error';
   else if (isLoading) state = 'loading';
 
@@ -258,43 +257,50 @@ export function TechStackTile(): JSX.Element {
       state={state}
       area={BENTO_AREAS.TechStack}
       onRetry={() => void refetch()}
-      emptyMessage="no language data in the selected timeframe. ship something."
     >
       <Stack gap="sm">
-        <StackBar gap={0} wrap="nowrap">
-          {slices.map((slice, idx) => (
-            <Box
-              key={slice.name}
-              style={{
-                height: '100%',
-                background: colorFor(slice, idx),
-                flexBasis: `${slice.share * 100}%`,
-              }}
-            />
-          ))}
-        </StackBar>
-        <Stack gap={4}>
-          {slices.map((slice, idx) => (
-            <Group key={slice.name} justify="space-between" gap="xs" wrap="nowrap">
-              <Group gap="xs" wrap="nowrap">
+        {slices.length > 0 ? (
+          <>
+            <StackBar gap={0} wrap="nowrap">
+              {slices.map((slice, idx) => (
                 <Box
-                  aria-hidden
+                  key={slice.name}
                   style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 2,
+                    height: '100%',
                     background: colorFor(slice, idx),
-                    flexShrink: 0,
+                    flexBasis: `${slice.share * 100}%`,
                   }}
                 />
-                <Text size="sm">{slice.name}</Text>
-              </Group>
-              <Text size="sm" c="dimmed" fw={600} style={metricMonoStyle}>
-                {Math.round(slice.share * 100)}%
-              </Text>
-            </Group>
-          ))}
-        </Stack>
+              ))}
+            </StackBar>
+            <Stack gap={4}>
+              {slices.map((slice, idx) => (
+                <Group key={slice.name} justify="space-between" gap="xs" wrap="nowrap">
+                  <Group gap="xs" wrap="nowrap">
+                    <Box
+                      aria-hidden
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: 2,
+                        background: colorFor(slice, idx),
+                        flexShrink: 0,
+                      }}
+                    />
+                    <Text size="sm">{slice.name}</Text>
+                  </Group>
+                  <Text size="sm" c="dimmed" fw={600} style={metricMonoStyle}>
+                    {Math.round(slice.share * 100)}%
+                  </Text>
+                </Group>
+              ))}
+            </Stack>
+          </>
+        ) : (
+          <Text size="sm" c="dimmed">
+            no language data in the selected timeframe. ship something.
+          </Text>
+        )}
 
         {state === 'loaded' && top && (
           <VerdictLine>
