@@ -14,6 +14,7 @@ import {
   refreshMergedPrsAuthoredMonths,
   type MergedPrsAuthoredCount,
 } from '../api/mergedPrsByMonthRange';
+import { listCachedPrMonths } from '../api/prMergeCache';
 import { monthsOverlappingRange } from '../api/githubCommitsSearch';
 import {
   COMMIT_HISTORY_DEFAULT_CAP,
@@ -164,10 +165,6 @@ export function useViewerMergedPrsAuthored(args: {
 
   const qkRef = useRef(qk);
   qkRef.current = qk;
-  const clientsRef = useRef(clients);
-  clientsRef.current = clients;
-  const queryClientRef = useRef(queryClient);
-  queryClientRef.current = queryClient;
 
   const rangeFrom = args.range.from;
   const rangeTo = args.range.to;
@@ -199,19 +196,42 @@ export function useViewerMergedPrsAuthored(args: {
   });
 
   useEffect(() => {
-    if (!login) return;
-    const kick = () => {
-      const c = clientsRef.current;
-      if (!c) return;
-      void refreshMergedPrsAuthoredMonths(c, login, rangeFrom, rangeTo, {
+    if (!login || !clients) return;
+
+    const controller = new AbortController();
+    const targetQk = qkRef.current;
+
+    const kick = async () => {
+      const hadAnyCacheBefore = (await listCachedPrMonths(login)).length > 0;
+
+      // Pass 1: keep current timeframe accurate and reactive.
+      await refreshMergedPrsAuthoredMonths(clients, login, rangeFrom, rangeTo, {
         staleMs: STALE_TIMES.mergedPrsAuthored,
+        signal: controller.signal,
         onSnapshot: (snapshot) => {
-          queryClientRef.current.setQueryData(qkRef.current, snapshot);
+          queryClient.setQueryData(targetQk, snapshot);
         },
       });
+
+      // Pass 2: first-time warmup — backfill full 12 months so timeframe
+      // switches are instant after initial load.
+      if (hadAnyCacheBefore || controller.signal.aborted) return;
+
+      const warmTo = new Date(typeof rangeTo === 'string' ? rangeTo : rangeTo);
+      warmTo.setHours(0, 0, 0, 0);
+      const warmFrom = new Date(warmTo);
+      warmFrom.setDate(warmFrom.getDate() - 365);
+      warmFrom.setHours(0, 0, 0, 0);
+
+      await refreshMergedPrsAuthoredMonths(clients, login, warmFrom, warmTo, {
+        staleMs: STALE_TIMES.mergedPrsAuthored,
+        signal: controller.signal,
+      });
     };
-    kick();
-  }, [login, rangeFrom, rangeTo]);
+
+    void kick();
+    return () => controller.abort();
+  }, [clients, login, queryClient, rangeFrom, rangeTo]);
 
   return result;
 }
