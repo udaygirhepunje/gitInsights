@@ -10,6 +10,7 @@ import {
   summarizeAverageCommitsPerDay,
   type AverageCommitsTrendPoint,
 } from '../../../analytics/averageCommitsPerDay';
+import { formatDisplayDayMonth } from '../../../analytics/dates';
 import { useAuth } from '../../../hooks/useAuth';
 import { useViewerCommitsByDay } from '../../../hooks/useGitHubQueries';
 import { useTimeframe } from '../../../hooks/useTimeframe';
@@ -64,6 +65,11 @@ function TooltipRow({ label, value }: { label: string; value: string }): JSX.Ele
   );
 }
 
+function formatTooltipRange(from: string, to: string): string {
+  if (from === to) return formatDisplayDayMonth(from);
+  return `${formatDisplayDayMonth(from)} – ${formatDisplayDayMonth(to)}`;
+}
+
 function pointTooltipLabel(point: AverageCommitsTrendPoint): TooltipProps['label'] {
   const isSingleDayPoint = point.from === point.to;
 
@@ -73,7 +79,7 @@ function pointTooltipLabel(point: AverageCommitsTrendPoint): TooltipProps['label
         <Text size="xs" ff="monospace" fw={600}>
           {point.label}
         </Text>
-        <TooltipRow label="window" value={`${point.from} -> ${point.to}`} />
+        <TooltipRow label="range" value={formatTooltipRange(point.from, point.to)} />
         <TooltipRow label="commits" value={String(point.commits)} />
         <Text size="xs" ff="monospace" c="dimmed">
           off-days only (effective working days: 0)
@@ -98,7 +104,7 @@ function pointTooltipLabel(point: AverageCommitsTrendPoint): TooltipProps['label
       <Text size="xs" ff="monospace" fw={600}>
         {point.label}
       </Text>
-      <TooltipRow label="window" value={`${point.from} -> ${point.to}`} />
+      <TooltipRow label="range" value={formatTooltipRange(point.from, point.to)} />
       <TooltipRow label="avg commits/effective day" value={formatAverage(point.average)} />
       <TooltipRow label="commits" value={String(point.commits)} />
       <TooltipRow label="effective working days" value={String(point.effectiveWorkingDays)} />
