@@ -9,6 +9,11 @@ import { useEffect, useRef } from 'react';
 
 import { loadAllCachedChunks, refreshStaleMonths } from '../api/commitsByDayRange';
 import type { CommitsByDay } from '../api/commitsByDayRange';
+import {
+  loadAllCachedMergedPrChunks,
+  refreshMergedPrsAuthoredMonths,
+  type MergedPrsAuthoredCount,
+} from '../api/mergedPrsByMonthRange';
 import { monthsOverlappingRange } from '../api/githubCommitsSearch';
 import {
   COMMIT_HISTORY_DEFAULT_CAP,
@@ -141,6 +146,70 @@ export function useViewerCommitsByDay(args: {
       });
     };
 
+    kick();
+  }, [login, rangeFrom, rangeTo]);
+
+  return result;
+}
+
+export function useViewerMergedPrsAuthored(args: {
+  login: string | null | undefined;
+  range: ContributionsRange;
+}): UseQueryResult<MergedPrsAuthoredCount> {
+  const clients = useGitHub();
+  const queryClient = useQueryClient();
+  const key = rangeKey(args.range);
+  const login = args.login ?? '';
+  const qk = queryKeys.viewerMergedPrsAuthored(login, key.from, key.to);
+
+  const qkRef = useRef(qk);
+  qkRef.current = qk;
+  const clientsRef = useRef(clients);
+  clientsRef.current = clients;
+  const queryClientRef = useRef(queryClient);
+  queryClientRef.current = queryClient;
+
+  const rangeFrom = args.range.from;
+  const rangeTo = args.range.to;
+
+  const result = useQuery({
+    queryKey: qk,
+    queryFn: async () => {
+      const cached = await loadAllCachedMergedPrChunks(login, rangeFrom, rangeTo);
+      if (cached) return cached;
+      const fromDate = new Date(typeof rangeFrom === 'string' ? rangeFrom : rangeFrom);
+      const toDate = new Date(typeof rangeTo === 'string' ? rangeTo : rangeTo);
+      fromDate.setHours(0, 0, 0, 0);
+      toDate.setHours(0, 0, 0, 0);
+      const fromIso = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, '0')}-${String(fromDate.getDate()).padStart(2, '0')}`;
+      const toIso = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, '0')}-${String(toDate.getDate()).padStart(2, '0')}`;
+      return {
+        total: 0,
+        byDate: {},
+        fromIso,
+        toIso,
+        truncated: false,
+        exact: true,
+        cachedMonths: [],
+        totalMonths: monthsOverlappingRange(fromDate, toDate).length,
+      } satisfies MergedPrsAuthoredCount;
+    },
+    enabled: login.length > 0,
+    staleTime: STALE_TIMES.mergedPrsAuthored,
+  });
+
+  useEffect(() => {
+    if (!login) return;
+    const kick = () => {
+      const c = clientsRef.current;
+      if (!c) return;
+      void refreshMergedPrsAuthoredMonths(c, login, rangeFrom, rangeTo, {
+        staleMs: STALE_TIMES.mergedPrsAuthored,
+        onSnapshot: (snapshot) => {
+          queryClientRef.current.setQueryData(qkRef.current, snapshot);
+        },
+      });
+    };
     kick();
   }, [login, rangeFrom, rangeTo]);
 

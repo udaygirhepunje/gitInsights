@@ -16,6 +16,7 @@ export const STALE_TIMES = {
   contributions: ONE_HOUR,
   commitHistory: ONE_HOUR,
   commitsByDay: ONE_HOUR,
+  mergedPrsAuthored: ONE_HOUR,
   repoMetadata: ONE_DAY,
 } as const;
 
@@ -71,6 +72,7 @@ export type QueryKeys = {
   viewer: () => QueryKey;
   viewerContributions: (from: string, to: string) => QueryKey;
   viewerCommitsByDay: (login: string, from: string, to: string) => QueryKey;
+  viewerMergedPrsAuthored: (login: string, from: string, to: string) => QueryKey;
   viewerOrgs: () => QueryKey;
   viewerRepoLanguages: () => QueryKey;
   repoCommitHistory: (owner: string, name: string, since?: string, until?: string) => QueryKey;
@@ -82,6 +84,7 @@ export const queryKeys: QueryKeys = {
   viewer: () => ['viewer'],
   viewerContributions: (from, to) => ['viewer', 'contributions', from, to],
   viewerCommitsByDay: (login, from, to) => ['viewer', 'commitsByDay', login, from, to],
+  viewerMergedPrsAuthored: (login, from, to) => ['viewer', 'mergedPrsAuthored', login, from, to],
   viewerOrgs: () => ['viewer', 'orgs'],
   viewerRepoLanguages: () => ['viewer', 'repoLanguages'],
   repoCommitHistory: (owner, name, since, until) => [
