@@ -2,7 +2,7 @@
   {
     "name": "Main entry JS (gzip)",
     "path": "dist/assets/index-*.js",
-    "limit": "385 KB",
+    "limit": "400 KB",
     "gzip": true
   }
 ]

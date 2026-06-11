@@ -1,0 +1,21 @@
+---
+description: Archive completed backlog tasks and sync docs
+globs: "{docs/tasks/backlog/**/*.md,docs/tasks/README.md,docs/spec.md,docs/features/**/*.md}"
+alwaysApply: false
+---
+
+# Backlog Task Completion Workflow
+
+When a task in `docs/tasks/backlog/` is completed:
+
+1. Move the task file from `docs/tasks/backlog/` to `docs/tasks/archive/`.
+2. Update `docs/tasks/README.md` so indexes, links, and task status stay accurate.
+3. Update `docs/spec.md` to reflect the completed task where relevant.
+4. Update related files under `docs/features/` to keep feature docs in sync.
+5. Replace stale backlog paths with archive paths anywhere they are referenced.
+
+Use this checklist before finishing:
+
+- Task file is in `docs/tasks/archive/`.
+- No outdated references to the old backlog location remain.
+- `docs/tasks/README.md`, `docs/spec.md`, and relevant `docs/features/` docs are updated.
