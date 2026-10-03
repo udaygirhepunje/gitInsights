@@ -156,7 +156,7 @@ export const cssVariablesResolver: CSSVariablesResolver = () => {
       '--gi-heatmap-3': primerLight.green[4],
       '--gi-heatmap-4': primerLight.green[5],
       '--gi-heatmap-highlight-ring': primerLight.gray[7],
-      '--gi-heatmap-non-workday': primerLight.orange[2],
+      '--gi-heatmap-non-workday': primerLight.yellow[2],
     },
     dark: {
       '--mantine-color-body': dark.bgDefault,
