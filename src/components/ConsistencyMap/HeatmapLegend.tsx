@@ -30,6 +30,10 @@ const PtoSwatch = styled(Swatch)`
   background: ${OFF_DAY_FILL};
 `;
 
+const NonWorkdaySwatch = styled(Swatch)`
+  background: var(--gi-heatmap-non-workday);
+`;
+
 const HolidaySwatch = styled(Swatch)`
   background: ${OFF_DAY_FILL};
 
@@ -98,6 +102,7 @@ export function HeatmapLegend(): JSX.Element {
         <LegendMono component="span">more</LegendMono>
       </Group>
 
+      <LegendItem swatch={<NonWorkdaySwatch />} label="non-working day" />
       <LegendItem swatch={<PtoSwatch />} label="pto" />
       <LegendItem swatch={<HolidaySwatch />} label="public holiday" />
       <LegendItem swatch={<ViolationSwatch />} label="pto violation" />

@@ -4,6 +4,7 @@ import type { CellAdornment } from '../components/ConsistencyMap/ConsistencyMap'
 import { useHolidays } from '../userData/useHolidays';
 import { usePto } from '../userData';
 import { useOffDayContext } from '../userData/useOffDayContext';
+import { dayOfWeek } from '../analytics/dates';
 
 // Returns the `cellAdornments(date)` lookup the heatmap consumes.
 // PTO + Public Holiday days share the off-day color (spec §6); holidays also
@@ -12,6 +13,7 @@ import { useOffDayContext } from '../userData/useOffDayContext';
 // via the heatmap's `data-gi-violation` attribute.
 
 const PTO_COLOR = 'var(--mantine-color-primerYellow-4)';
+const NON_WORKDAY_COLOR = 'var(--gi-heatmap-non-workday)';
 
 function ptoLabel(kind: string | undefined, label: string | undefined): string {
   const kindLabel = kind ? kind[0]!.toUpperCase() + kind.slice(1) : 'PTO';
@@ -41,6 +43,7 @@ export function useCellAdornments(byDate: ReadonlyMap<string, number>): (date: s
       const holidayEntries = holidays.lookup.get(date);
       const overridden = ctx.overrideSet.has(date);
       const hasCount = (byDate.get(date) ?? 0) > 0;
+      const isWorkday = ctx.workdays.has(dayOfWeek(date));
 
       if (ptoEntry) {
         return {
@@ -62,7 +65,16 @@ export function useCellAdornments(byDate: ReadonlyMap<string, number>): (date: s
         };
       }
 
+      if (!isWorkday) {
+        return {
+          color: NON_WORKDAY_COLOR,
+          overlayDot: hasCount, // Mark commits on non-working days as a violation dot? The prompt says it drives every weekend/non-workday metric, so showing a dot is probably desired just like PTO.
+          label: 'Non-working day',
+          nonWorkday: true,
+        };
+      }
+
       return undefined;
     };
-  }, [byDate, ctx.overrideSet, holidays.lookup, ptoMap]);
+  }, [byDate, ctx.workdays, ctx.overrideSet, holidays.lookup, ptoMap]);
 }

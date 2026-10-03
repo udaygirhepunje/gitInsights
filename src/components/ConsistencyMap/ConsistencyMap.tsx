@@ -18,6 +18,8 @@ export type CellAdornment = {
   label?: string;
   /** When true, paints a bottom-left wedge so public holidays read distinct from PTO (same base color). */
   publicHoliday?: boolean;
+  /** True for standard non-working days (weekends etc) defined by the user's workweek. */
+  nonWorkday?: boolean;
   /** Subtitle for tooltip (PTO title / holiday names), without the category prefix. */
   tooltipDetail?: string;
 };
@@ -264,9 +266,10 @@ const TT_PTO_HEAD = 'var(--mantine-color-primerYellow-4)';
 const TT_PTO_DETAIL = 'var(--mantine-color-primerYellow-2)';
 const TT_HOL_HEAD = 'var(--mantine-color-primerOrange-5)';
 const TT_HOL_DETAIL = 'var(--mantine-color-primerOrange-3)';
+const TT_NON_WORKDAY = 'var(--mantine-color-primerOrange-3)';
 const TT_VIOLATION = 'var(--mantine-color-primerRed-4)';
 
-type TooltipOffDay = { type: 'pto' | 'publicHoliday'; detail: string };
+type TooltipOffDay = { type: 'pto' | 'publicHoliday' | 'nonWorkday'; detail: string };
 
 type TooltipFacts = {
   date: Date;
@@ -334,7 +337,7 @@ function CellTooltipContent({ facts }: { facts: TooltipFacts }): JSX.Element {
                 </Text>
               ) : null}
             </>
-          ) : (
+          ) : facts.offDay.type === 'publicHoliday' ? (
             <>
               <Text span fw={700} style={{ color: TT_HOL_HEAD }}>
                 public holiday
@@ -344,6 +347,12 @@ function CellTooltipContent({ facts }: { facts: TooltipFacts }): JSX.Element {
                   {` · ${facts.offDay.detail}`}
                 </Text>
               ) : null}
+            </>
+          ) : (
+            <>
+              <Text span fw={700} style={{ color: TT_NON_WORKDAY }}>
+                non-working day
+              </Text>
             </>
           )}
         </Text>
@@ -428,7 +437,7 @@ export function ConsistencyMap({
         const offDay: TooltipOffDay | undefined =
           adorn?.color != null
             ? {
-                type: adorn.publicHoliday ? 'publicHoliday' : 'pto',
+                type: adorn.publicHoliday ? 'publicHoliday' : adorn.nonWorkday ? 'nonWorkday' : 'pto',
                 detail: adorn.tooltipDetail ?? '',
               }
             : undefined;
