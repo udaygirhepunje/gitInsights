@@ -60,7 +60,8 @@
   },
   {
     "date": "2026-04-25",
-    "name": "Anzac Day"
+    "name": "Anzac Day",
+    "regional": true
   },
   {
     "date": "2026-06-08",
@@ -98,7 +99,8 @@
   },
   {
     "date": "2027-04-25",
-    "name": "Anzac Day"
+    "name": "Anzac Day",
+    "regional": true
   },
   {
     "date": "2027-06-14",
